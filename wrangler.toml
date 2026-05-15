@@ -1,0 +1,14 @@
+name = "fp-gacha-bot"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+SUPABASE_URL = "https://spfyisnsjobyaebsradv.supabase.co"
+WORKER_URL   = "https://fp-gacha-bot.parcy0704.workers.dev"
+
+[[kv_namespaces]]
+binding = "GACHA_STATE"
+id = "e5dd2bd4c8c047cca1e1e7eec46ce7e7"
+
+[triggers]
+crons = ["0 * * * *"]
