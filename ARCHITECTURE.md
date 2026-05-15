@@ -18,9 +18,12 @@
 
 ```
 fp-gacha-bot/
-├── src/index.js          # メインロジック（696行・2026年5月時点）
+├── src/index.js          # メインロジック（約730行・2026年5月時点）
 ├── wrangler.toml         # Cloudflare Workers設定
 ├── supabase_setup.sql    # Supabaseテーブル定義
+├── docs/
+│   ├── client.html       # 相談者向け説明ページ（ポップデザイン）
+│   └── fp.html           # FP向け説明ページ（プロ向けデザイン）
 └── ARCHITECTURE.md       # このファイル
 ```
 
@@ -61,6 +64,7 @@ Secrets（`wrangler secret put` で設定）:
 |---|---|---|
 | `fp_reg:{userId}` | FP登録フロー途中状態 | 1時間 |
 | `client:{userId}` | クライアント相談フロー途中状態 | 1時間 |
+| `fp_url_queue:{fpUserId}` | FPごとのURL待ちキュー（JSON配列） | 無期限 |
 
 ---
 
@@ -178,7 +182,8 @@ Secrets（`wrangler secret put` で設定）:
 
 | 関数 | 役割 |
 |---|---|
-| `notifyFP` | マッチしたFPに予約通知をLINEで送信 |
+| `notifyFP` | マッチしたFPに予約通知＋「URLをこのLINEに貼ると転送」案内を送信 |
+| `handleFPUrlForward` | FPがURLを送信→そのFPのキューの先頭ユーザーに自動転送 |
 | `clientRate` | 星評価をセッションに保存 |
 | `processRatingJobs` | 毎時Cronで`send_at`を過ぎたジョブを送信 |
 

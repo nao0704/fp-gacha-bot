@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPガチャ｜FPパートナー募集・自動集客の仕組み</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      color: #1a2340;
+      background: #fff;
+      overflow-x: hidden;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #0f2460 0%, #1a4a7a 60%, #0d7a5f 100%);
+      padding: 72px 24px 96px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0; right: 0;
+      height: 60px;
+      background: #fff;
+      clip-path: ellipse(55% 100% at 50% 100%);
+    }
+    .hero-label {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.9);
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 6px 18px;
+      border-radius: 999px;
+      margin-bottom: 24px;
+      letter-spacing: 0.08em;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 6vw, 3rem);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.25;
+      margin-bottom: 20px;
+    }
+    .hero h1 em {
+      font-style: normal;
+      color: #7ee8c8;
+    }
+    .hero-sub {
+      font-size: clamp(0.95rem, 2.5vw, 1.1rem);
+      color: rgba(255,255,255,0.85);
+      line-height: 1.85;
+      max-width: 540px;
+      margin: 0 auto 40px;
+    }
+    .hero-cta {
+      display: inline-block;
+      background: #7ee8c8;
+      color: #0f2460;
+      font-size: 1.05rem;
+      font-weight: 900;
+      padding: 16px 44px;
+      border-radius: 999px;
+      text-decoration: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+    .hero-cta:hover { transform: translateY(-3px); }
+
+    /* ── SECTIONS ── */
+    section { padding: 72px 24px; }
+    .section-inner { max-width: 840px; margin: 0 auto; }
+    .section-label {
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #1a4a7a;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      text-align: center;
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 900;
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+    .section-title em { font-style: normal; color: #1a4a7a; }
+    .section-sub {
+      text-align: center;
+      font-size: 0.95rem;
+      color: #666;
+      line-height: 1.8;
+      margin-bottom: 48px;
+    }
+
+    /* ── VALUE PROPS ── */
+    .value { background: #f4f8ff; }
+    .value-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    .value-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 28px 24px;
+      border-top: 4px solid #1a4a7a;
+      box-shadow: 0 4px 20px rgba(26,74,122,0.07);
+    }
+    .value-card .num {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #1a4a7a;
+      margin-bottom: 8px;
+    }
+    .value-card h3 { font-size: 1rem; font-weight: 900; margin-bottom: 8px; }
+    .value-card p { font-size: 0.88rem; line-height: 1.8; color: #555; }
+
+    /* ── HOW ── */
+    .how { background: #fff; }
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .flow-item {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      padding-bottom: 32px;
+      position: relative;
+    }
+    .flow-item:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 19px;
+      top: 44px;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, #1a4a7a, #0d7a5f);
+    }
+    .flow-dot {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1a4a7a, #0d7a5f);
+      color: #fff;
+      font-weight: 900;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+    .flow-content h4 { font-size: 1rem; font-weight: 900; margin-bottom: 4px; padding-top: 8px; }
+    .flow-content p { font-size: 0.88rem; color: #555; line-height: 1.7; }
+
+    /* ── GACHA MODEL ── */
+    .gacha { background: linear-gradient(135deg, #0f2460, #1a4a7a); }
+    .gacha .section-title { color: #fff; }
+    .gacha .section-title em { color: #7ee8c8; }
+    .gacha .section-sub { color: rgba(255,255,255,0.75); }
+    .gacha-points {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      max-width: 840px;
+      margin: 0 auto;
+    }
+    .gacha-point {
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(4px);
+      border-radius: 16px;
+      padding: 24px 20px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+    }
+    .gacha-point .icon { font-size: 2.2rem; margin-bottom: 12px; }
+    .gacha-point h3 { font-size: 0.95rem; font-weight: 900; margin-bottom: 8px; color: #7ee8c8; }
+    .gacha-point p { font-size: 0.85rem; line-height: 1.75; opacity: 0.88; }
+
+    /* ── PRICING ── */
+    .pricing { background: #f4f8ff; }
+    .pricing-table {
+      max-width: 640px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(26,74,122,0.1);
+    }
+    .pricing-row {
+      display: flex;
+      align-items: center;
+      padding: 20px 28px;
+      gap: 16px;
+      border-bottom: 1px solid #eef2f8;
+    }
+    .pricing-row:last-child { border-bottom: none; }
+    .pricing-row .tag {
+      flex-shrink: 0;
+      background: #e8f0fe;
+      color: #1a4a7a;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      min-width: 80px;
+      text-align: center;
+    }
+    .pricing-row .tag.current { background: #0d7a5f; color: #fff; }
+    .pricing-row .tag.future { background: #1a4a7a; color: #fff; }
+    .pricing-row .desc { font-size: 0.92rem; line-height: 1.7; color: #333; }
+    .pricing-row .desc strong { color: #1a4a7a; }
+    .pricing-note {
+      max-width: 640px;
+      margin: 20px auto 0;
+      background: #fff8e1;
+      border-left: 4px solid #f6c90e;
+      border-radius: 0 12px 12px 0;
+      padding: 16px 20px;
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: #555;
+    }
+
+    /* ── REQUIREMENTS ── */
+    .requirements { background: #fff; }
+    .req-list {
+      max-width: 560px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .req-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      background: #f4f8ff;
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .req-item .check {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #1a4a7a;
+      color: #fff;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .req-item h4 { font-size: 0.95rem; font-weight: 900; margin-bottom: 4px; }
+    .req-item p { font-size: 0.85rem; color: #555; line-height: 1.7; }
+
+    /* ── NO COMMISSION ── */
+    .no-commission {
+      background: #f0fff8;
+      border-top: 1px solid #c6f6d5;
+      border-bottom: 1px solid #c6f6d5;
+    }
+    .commission-box {
+      max-width: 640px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .commission-box .big { font-size: 3rem; margin-bottom: 16px; }
+    .commission-box h3 { font-size: 1.3rem; font-weight: 900; color: #276749; margin-bottom: 12px; }
+    .commission-box p { font-size: 0.95rem; line-height: 1.9; color: #444; }
+
+    /* ── CTA ── */
+    .cta-section {
+      background: linear-gradient(135deg, #0f2460, #0d7a5f);
+      padding: 80px 24px;
+      text-align: center;
+    }
+    .cta-section h2 { font-size: clamp(1.4rem, 4vw, 2rem); font-weight: 900; color: #fff; margin-bottom: 12px; }
+    .cta-section p { color: rgba(255,255,255,0.8); margin-bottom: 32px; font-size: 0.95rem; line-height: 1.8; }
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #7ee8c8;
+      color: #0f2460;
+      font-size: 1.05rem;
+      font-weight: 900;
+      padding: 18px 48px;
+      border-radius: 999px;
+      text-decoration: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      transition: transform 0.2s;
+    }
+    .cta-btn:hover { transform: translateY(-3px); }
+    .cta-note { color: rgba(255,255,255,0.55); font-size: 0.82rem; margin-top: 16px; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0f2460;
+      color: rgba(255,255,255,0.4);
+      text-align: center;
+      padding: 24px;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-label">FP PARTNER PROGRAM</div>
+  <h1>FPガチャで、<br><em>新規顧客を<br>自動で獲得しよう</em></h1>
+  <p class="hero-sub">
+    一切の営業活動をせずに、LINEを通じて<br>
+    相談者があなたに自動でマッチングされます。<br>
+    集客の手間をゼロにして、相談に集中してください。
+  </p>
+  <a href="https://lin.ee/7OS8Lib" class="hero-cta">🎲 FPとして無料登録する</a>
+</section>
+
+<!-- VALUE PROPS -->
+<section class="value">
+  <div class="section-inner">
+    <p class="section-label">WHY FP GACHA</p>
+    <h2 class="section-title">FPガチャが選ばれる<br><em>4つの理由</em></h2>
+    <p class="section-sub">個人FPの最大の課題「集客」を、テクノロジーで解決します。</p>
+    <div class="value-grid">
+      <div class="value-card">
+        <div class="num">01</div>
+        <h3>完全自動の顧客獲得（リーズ）</h3>
+        <p>あなたが何もしなくても、相談者がAIによって自動的にマッチングされます。営業・広告・SNS発信は一切不要です。</p>
+      </div>
+      <div class="value-card">
+        <div class="num">02</div>
+        <h3>ガチャ方式で公平な配信</h3>
+        <p>相談者への配信はランダムなガチャ方式。FP間で受注数の偏りが生じない公平な仕組みです。人気度や知名度に関係なく機会が与えられます。</p>
+      </div>
+      <div class="value-card">
+        <div class="num">03</div>
+        <h3>現在は完全無料</h3>
+        <p>現時点での登録・利用は完全無料です。早期参加者として先行してリーズを受け取れます。</p>
+      </div>
+      <div class="value-card">
+        <div class="num">04</div>
+        <h3>Googleカレンダー連携で手間なし</h3>
+        <p>あなたのGoogleカレンダーと連携するだけで、空き時間が自動で管理されます。ダブルブッキングの心配もありません。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GACHA MODEL -->
+<section class="gacha">
+  <div class="section-inner">
+    <p class="section-label" style="color:rgba(255,255,255,0.6)">THE GACHA MODEL</p>
+    <h2 class="section-title">「ガチャ配信」の<em>仕組みと公平性</em></h2>
+    <p class="section-sub">FPガチャのマッチングは、完全にアルゴリズムが行います。</p>
+    <div class="gacha-points">
+      <div class="gacha-point">
+        <div class="icon">🤖</div>
+        <h3>AIによる自動マッチング</h3>
+        <p>相談者の悩み・ライフステージ・年代をAIが分析し、あなたの専門領域と自動でマッチングします。</p>
+      </div>
+      <div class="gacha-point">
+        <div class="icon">🎲</div>
+        <h3>ランダム配信で平等な機会</h3>
+        <p>条件が合うFPが複数いる場合、ランダム（ガチャ）で1名が選ばれます。FPごとの受注数に差がつきません。</p>
+      </div>
+      <div class="gacha-point">
+        <div class="icon">📅</div>
+        <h3>空き時間ベースで自動調整</h3>
+        <p>Googleカレンダーの空き状況をリアルタイムで確認。埋まっている時間には配信されません。</p>
+      </div>
+      <div class="gacha-point">
+        <div class="icon">⏸</div>
+        <h3>受付の一時停止も自由</h3>
+        <p>繁忙期や休暇中は「一時停止」でいつでも受付を止められます。再開も簡単です。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how">
+  <div class="section-inner">
+    <p class="section-label">HOW IT WORKS</p>
+    <h2 class="section-title">登録から受注まで<br><em>5ステップ</em></h2>
+    <p class="section-sub">登録作業は最短10分。あとはカレンダーを管理するだけです。</p>
+    <div class="flow">
+      <div class="flow-item">
+        <div class="flow-dot">1</div>
+        <div class="flow-content">
+          <h4>LINEで「登録」と送る</h4>
+          <p>FPガチャの公式LINEに「登録」と送るだけで登録フローが始まります。</p>
+        </div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-dot">2</div>
+        <div class="flow-content">
+          <h4>プロフィール入力</h4>
+          <p>お名前・対応できるライフステージ・専門領域をLINE上で選択します。</p>
+        </div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-dot">3</div>
+        <div class="flow-content">
+          <h4>Googleカレンダーを連携</h4>
+          <p>発行されるリンクからGoogleアカウントを認証するだけ。難しい設定は不要です。</p>
+        </div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-dot">4</div>
+        <div class="flow-content">
+          <h4>相談者からの予約が入ったらLINEで通知</h4>
+          <p>マッチングが確定するとLINEに通知が届きます。日時・相談内容が確認できます。</p>
+        </div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-dot">5</div>
+        <div class="flow-content">
+          <h4>オンライン会議URLをLINEに貼るだけ</h4>
+          <p>ZoomでもGoogle MeetでもTeamsでも構いません。URLをこのLINEに貼ると、相談者に自動転送されます。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NO COMMISSION -->
+<section class="no-commission">
+  <div class="commission-box">
+    <div class="big">🤝</div>
+    <h3>金融商品の手数料は一切いただきません</h3>
+    <p>
+      FPガチャは、金融商品の販売を一切仲介しません。<br>
+      相談者が保険や投資商品を契約した場合でも、<br>
+      その手数料をFPガチャが受け取ることはありません。<br><br>
+      FPの皆さんの収益は、あなたとクライアントの間で完結します。<br>
+      透明性の高い、純粋な集客支援サービスです。
+    </p>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing">
+  <div class="section-inner">
+    <p class="section-label">PRICING</p>
+    <h2 class="section-title">料金体系</h2>
+    <p class="section-sub">現在は完全無料で展開中。今のうちにご参加ください。</p>
+    <div class="pricing-table">
+      <div class="pricing-row">
+        <div class="tag current">現在</div>
+        <div class="desc"><strong>完全無料</strong>で登録・利用いただけます。初期費用・月額費用・成果報酬のいずれも発生しません。</div>
+      </div>
+      <div class="pricing-row">
+        <div class="tag future">将来</div>
+        <div class="desc">サービスの成長に合わせて、<strong>月額サブスクリプション制</strong>への移行を予定しています。早期参加者には優遇価格での提供を検討しています。</div>
+      </div>
+      <div class="pricing-row">
+        <div class="tag">永続</div>
+        <div class="desc">金融商品の販売手数料・成果報酬は<strong>永久に徴収しません</strong>。これはFPガチャの根本的なポリシーです。</div>
+      </div>
+    </div>
+    <div class="pricing-note">
+      💡 現在は先行フェーズとして無料展開中です。早期にご参加いただいたFPの方々には、今後の料金改定時に最大限の配慮をいたします。
+    </div>
+  </div>
+</section>
+
+<!-- REQUIREMENTS -->
+<section class="requirements">
+  <div class="section-inner">
+    <p class="section-label">REQUIREMENTS</p>
+    <h2 class="section-title">参加要件</h2>
+    <p class="section-sub">必要なものはシンプルです。</p>
+    <div class="req-list">
+      <div class="req-item">
+        <div class="check">✓</div>
+        <div>
+          <h4>FPを本業としていること</h4>
+          <p>ファイナンシャルプランナーとして本業で活動している方が対象です。副業・学習目的の方はご遠慮ください。</p>
+        </div>
+      </div>
+      <div class="req-item">
+        <div class="check">✓</div>
+        <div>
+          <h4>Googleアカウント（カレンダー連携）</h4>
+          <p>Googleカレンダーで空き時間を管理するため、Googleアカウントが必要です。新規取得も無料でできます。</p>
+        </div>
+      </div>
+      <div class="req-item">
+        <div class="check">✓</div>
+        <div>
+          <h4>オンライン会議ツールが使えること</h4>
+          <p>Zoom・Google Meet・Microsoft Teamsなど、オンライン会議が実施できる環境があればOKです。ツールの種類は問いません。URLを発行してLINEに貼るだけです。</p>
+        </div>
+      </div>
+      <div class="req-item">
+        <div class="check">✓</div>
+        <div>
+          <h4>LINEアカウントをお持ちであること</h4>
+          <p>通知や予約管理はLINEで行います。通常のLINEアカウントがあれば問題ありません。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>今すぐ無料で<br>FP登録をはじめよう</h2>
+  <p>
+    営業・広告なしで新規相談者を自動獲得。<br>
+    登録は最短10分、今なら完全無料です。
+  </p>
+  <a href="https://lin.ee/7OS8Lib" class="cta-btn">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.105.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+    LINEでFP登録を始める（無料）
+  </a>
+  <p class="cta-note">※ 登録後、いつでも一時停止・退会できます</p>
+</section>
+
+<footer>
+  &copy; 2025 FPガチャ. All rights reserved.
+</footer>
+
+</body>
+</html>

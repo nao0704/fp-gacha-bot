@@ -342,27 +342,63 @@ async function clientSlotTap(uid, rt, p, env) {
   }
   const winner = avail[Math.floor(Math.random() * avail.length)];
 
-  // Googleカレンダーにイベント作成（Meet URLを自動生成）
-  const meetUrl = await createMeetEvent(winner, slot, uid, env);
-
   await updateSession(session_id, { selected_fp_id: winner.id, scheduled_start: slot.start, scheduled_end: slot.end, status: 'confirmed' }, env);
   await kv(env).delete(`client:${uid}`);
 
   const { m, d, wd, h } = jstParts(slot.start);
+  const dateTimeStr = `${m}月${d}日(${wd}) ${h}:00〜${String(parseInt(h)+1).padStart(2,'0')}:00`;
+
+  // FPごとのURL待ちキューに追加
+  const queueKey = `fp_url_queue:${winner.line_user_id}`;
+  const queueRaw = await kv(env).get(queueKey);
+  const queue = queueRaw ? JSON.parse(queueRaw) : [];
+  queue.push({ clientUserId: uid, clientName: '相談者', dateTimeStr });
+  await kv(env).put(queueKey, JSON.stringify(queue));
 
   await reply(rt, '🎲 ガチャを回しています…', env);
-  await pushFlex(uid, resultFlex(winner, m, d, wd, h, meetUrl), env);
+  await pushFlex(uid, resultFlex(winner, m, d, wd, h), env);
 
-  // FPに通知 + カレンダー追加済みメッセージ
-  await notifyFP(winner, slot, meetUrl, env);
+  // FPに通知（URLをこのLINEに送るよう案内）
+  await notifyFP(winner, slot, env);
 
   // 評価ジョブ：相談終了1時間後に送信
   const sendAt = new Date(new Date(slot.end).getTime() + SLOT_MS).toISOString();
   await createRatingJob({ session_id, client_line_user_id: uid, fp_name: winner.name, send_at: sendAt }, env);
 }
 
+// ── FP URL転送 ────────────────────────────────────────
+async function handleFPUrlForward(fpUid, url, rt, fp, env) {
+  const queueKey = `fp_url_queue:${fpUid}`;
+  const queueRaw = await kv(env).get(queueKey);
+  const queue = queueRaw ? JSON.parse(queueRaw) : [];
+
+  if (queue.length === 0) {
+    await reply(rt, 'URL待ちの相談者がいません。', env);
+    return;
+  }
+
+  const next = queue.shift();
+  await kv(env).put(queueKey, JSON.stringify(queue));
+
+  await push(next.clientUserId,
+    `お待たせしました！\n\n当日のオンライン相談はこちらからご参加ください。\n${url}\n\nご不明な点はお気軽にご連絡ください 🌿`,
+    env
+  );
+
+  const remaining = queue.length;
+  const remainingMsg = remaining > 0 ? `\n\n（残り${remaining}件のURL待ちがあります）` : '';
+  await reply(rt, `相談者にURLを送りました ✅\n日程：${next.dateTimeStr}${remainingMsg}`, env);
+}
+
 // ── FP Menu ───────────────────────────────────────────
 async function fpMenu(uid, text, rt, fp, env) {
+  // URL送信の検知（Zoom / Meet / Teams など何でも対応）
+  const urlMatch = text.match(/https?:\/\/[^\s]+/);
+  if (urlMatch) {
+    await handleFPUrlForward(uid, urlMatch[0], rt, fp, env);
+    return;
+  }
+
   if (text === '一時停止' || text === '停止') {
     await patchFP(uid, { active: false }, env);
     await reply(rt, '受付を一時停止しました 🙏\n再開するには「再開」と送ってください。', env);
@@ -516,14 +552,13 @@ async function findFPs(lifecycle, categories, env) {
 }
 
 // ── FP Notification ───────────────────────────────────
-async function notifyFP(fp, slot, meetUrl, env) {
+async function notifyFP(fp, slot, env) {
   if (!fp.line_user_id) return;
   const { m, d, wd, h } = jstParts(slot.start);
   await push(fp.line_user_id,
     `📅 FPガチャで予約が入りました！\n\n` +
-    `日時：${m}月${d}日(${wd}) ${h}:00〜${String(parseInt(h)+1).padStart(2,'0')}:00\n` +
-    `Google Meet：${meetUrl}\n\n` +
-    `Googleカレンダーにも追加済みです ✅\n\n` +
+    `日時：${m}月${d}日(${wd}) ${h}:00〜${String(parseInt(h)+1).padStart(2,'0')}:00\n\n` +
+    `ZoomまたはGoogle MeetなどのURLを発行したら、\nこのトークにURLを貼り付けてください。\n相談者に自動で転送されます 🔗\n\n` +
     `※ 初回はオンライン相談のみ。対面はクライアント承認後に限ります。`, env);
 }
 
@@ -551,7 +586,7 @@ function slotFlex(slots, fpCount) {
   };
 }
 
-function resultFlex(fp, m, d, wd, h, meetUrl) {
+function resultFlex(fp, m, d, wd, h) {
   const spLabels = (fp.specialties || []).slice(0, 4).map(k => SPECIALTIES.find(s => s.key === k)?.label).filter(Boolean).join('・');
   return {
     type: 'flex', altText: `🎉 ${fp.name}FPとマッチしました！`,
@@ -566,10 +601,9 @@ function resultFlex(fp, m, d, wd, h, meetUrl) {
           { type: 'text', text: `専門：${spLabels}`, size: 'sm', color: '#555555', wrap: true },
           { type: 'separator', margin: 'md' },
           { type: 'text', text: `📅 ${m}月${d}日(${wd}) ${h}:00〜${String(parseInt(h)+1).padStart(2,'0')}:00`, weight: 'bold', margin: 'md' },
-          { type: 'text', text: 'オンライン相談（Google Meet）', size: 'sm', color: '#555555' },
+          { type: 'text', text: 'オンライン相談（Zoom / Google Meet など）', size: 'sm', color: '#555555' },
+          { type: 'text', text: '参加URLはFPより追ってご連絡します 🔗', size: 'sm', color: '#1A6B3C', wrap: true, margin: 'sm' },
           { type: 'text', text: 'カメラ顔出しは任意です 🌿', size: 'xs', color: '#888888' },
-          { type: 'button', style: 'primary', color: '#1A6B3C', margin: 'lg',
-            action: { type: 'uri', label: 'Google Meetで参加する', uri: meetUrl || 'https://meet.google.com' } },
         ],
       },
     },

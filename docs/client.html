@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPガチャ｜お金の悩み、プロに気軽に相談しよう</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      color: #1a1a2e;
+      background: #fff;
+      overflow-x: hidden;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #667eea 0%, #f093fb 50%, #f5576c 100%);
+      padding: 60px 24px 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.25);
+      color: #fff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 6px 16px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+      letter-spacing: 0.05em;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 7vw, 3.2rem);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.2;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .hero-emoji { font-size: clamp(2.5rem, 8vw, 4rem); display: block; margin-bottom: 12px; }
+    .hero-sub {
+      font-size: clamp(0.95rem, 3vw, 1.15rem);
+      color: rgba(255,255,255,0.92);
+      line-height: 1.7;
+      max-width: 480px;
+      margin: 0 auto 32px;
+      position: relative;
+    }
+    .hero-cta {
+      display: inline-block;
+      background: #fff;
+      color: #667eea;
+      font-size: 1.1rem;
+      font-weight: 900;
+      padding: 16px 40px;
+      border-radius: 999px;
+      text-decoration: none;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .hero-cta:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
+    .hero-free {
+      display: inline-block;
+      margin-top: 14px;
+      color: rgba(255,255,255,0.9);
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    /* ── SECTIONS ── */
+    section { padding: 64px 24px; }
+    .section-title {
+      text-align: center;
+      font-size: clamp(1.4rem, 5vw, 2rem);
+      font-weight: 900;
+      margin-bottom: 48px;
+      line-height: 1.3;
+    }
+    .section-title span { color: #667eea; }
+
+    /* ── WHAT IS ── */
+    .what-is { background: #f8f5ff; }
+    .what-box {
+      max-width: 640px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 24px;
+      padding: 32px 28px;
+      box-shadow: 0 4px 24px rgba(102,126,234,0.1);
+      text-align: center;
+    }
+    .what-box .big-emoji { font-size: 4rem; margin-bottom: 16px; }
+    .what-box p {
+      font-size: 1rem;
+      line-height: 1.9;
+      color: #444;
+    }
+    .what-box strong { color: #667eea; }
+
+    /* ── BENEFITS ── */
+    .benefits { background: #fff; }
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .benefit-card {
+      background: linear-gradient(135deg, #f8f5ff, #fff5f8);
+      border-radius: 20px;
+      padding: 28px 24px;
+      border: 2px solid rgba(102,126,234,0.1);
+    }
+    .benefit-card .icon { font-size: 2.4rem; margin-bottom: 12px; }
+    .benefit-card h3 {
+      font-size: 1.05rem;
+      font-weight: 900;
+      margin-bottom: 8px;
+      color: #1a1a2e;
+    }
+    .benefit-card p { font-size: 0.92rem; line-height: 1.8; color: #555; }
+
+    /* ── HOW IT WORKS ── */
+    .how { background: linear-gradient(135deg, #667eea 0%, #f093fb 100%); }
+    .how .section-title { color: #fff; }
+    .how .section-title span { color: #fff; text-decoration: underline; }
+    .steps {
+      max-width: 560px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .step {
+      background: rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px);
+      border-radius: 16px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      color: #fff;
+    }
+    .step-num {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #fff;
+      color: #667eea;
+      font-weight: 900;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .step-text h4 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+    .step-text p { font-size: 0.88rem; opacity: 0.9; line-height: 1.6; }
+
+    /* ── WORRIES ── */
+    .worries { background: #fff8f0; }
+    .worries-list {
+      max-width: 640px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .worry-item {
+      background: #fff;
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .worry-item .worry-emoji { font-size: 1.6rem; flex-shrink: 0; }
+
+    /* ── SAFE ── */
+    .safe { background: #f0fff4; }
+    .safe-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .safe-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px 20px;
+      text-align: center;
+      border: 2px solid #c6f6d5;
+    }
+    .safe-card .icon { font-size: 2rem; margin-bottom: 10px; }
+    .safe-card h3 { font-size: 0.95rem; font-weight: 900; margin-bottom: 6px; color: #276749; }
+    .safe-card p { font-size: 0.85rem; color: #555; line-height: 1.7; }
+
+    /* ── FAQ ── */
+    .faq { background: #f8f5ff; }
+    .faq-list {
+      max-width: 640px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .faq-item {
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(102,126,234,0.08);
+    }
+    .faq-q {
+      padding: 18px 20px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: #667eea;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .faq-q::after { content: '▼'; font-size: 0.8rem; }
+    .faq-a {
+      padding: 0 20px 16px;
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: #555;
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      background: linear-gradient(135deg, #1a1a2e, #667eea);
+      padding: 72px 24px;
+      text-align: center;
+    }
+    .cta-section h2 {
+      font-size: clamp(1.5rem, 5vw, 2.2rem);
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+    .cta-section p { color: rgba(255,255,255,0.8); margin-bottom: 32px; font-size: 1rem; }
+    .cta-line-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #06C755;
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 900;
+      padding: 18px 48px;
+      border-radius: 999px;
+      text-decoration: none;
+      box-shadow: 0 8px 32px rgba(6,199,85,0.35);
+      transition: transform 0.2s;
+    }
+    .cta-line-btn:hover { transform: translateY(-3px); }
+    .cta-note { color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-top: 16px; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #1a1a2e;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      padding: 24px;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🎲 完全無料・オンライン</div>
+  <span class="hero-emoji">💰</span>
+  <h1>お金の悩み、<br>プロに気軽に<br>相談しよう</h1>
+  <p class="hero-sub">家計・保険・老後・投資・節税…<br>どんな悩みでも、金融のプロ（FP）が<br>あなたに合った時間をすぐ予約。<br>費用は一切かかりません。</p>
+  <a href="https://lin.ee/7OS8Lib" class="hero-cta">🎲 LINEで無料相談を始める</a>
+  <div class="hero-free">✅ 完全無料　✅ オンライン　✅ 匿名OK</div>
+</section>
+
+<!-- WORRIES -->
+<section class="worries">
+  <h2 class="section-title">こんなお悩み、<br><span>ありませんか？</span></h2>
+  <div class="worries-list">
+    <div class="worry-item"><span class="worry-emoji">😟</span>老後の資金がぜんぜん貯まってない…</div>
+    <div class="worry-item"><span class="worry-emoji">🤔</span>保険、本当に今のままでいいの？</div>
+    <div class="worry-item"><span class="worry-emoji">😰</span>子どもの教育費、どう準備すればいい？</div>
+    <div class="worry-item"><span class="worry-emoji">📊</span>NISAってやったほうがいい？何から始めれば？</div>
+    <div class="worry-item"><span class="worry-emoji">💸</span>毎月お金が足りない。家計を見直したい。</div>
+    <div class="worry-item"><span class="worry-emoji">🏠</span>住宅ローン、このままで大丈夫？</div>
+    <div class="worry-item"><span class="worry-emoji">😣</span>相談したいけど、誰に頼んだらいいかわからない。</div>
+  </div>
+</section>
+
+<!-- WHAT IS -->
+<section class="what-is">
+  <h2 class="section-title"><span>FPガチャ</span>って何？</h2>
+  <div class="what-box">
+    <div class="big-emoji">🎲</div>
+    <p>
+      <strong>FPガチャ</strong>は、金融の国家資格を持つプロの<strong>ファイナンシャルプランナー（FP）</strong>と、LINEで簡単に相談予約ができるサービスです。<br><br>
+      「ガチャ」という名前の通り、あなたの悩みと状況に合ったFPを<strong>AIがマッチングして自動で割り当て</strong>ます。面倒な比較・選択は一切不要。<br><br>
+      相談はすべて<strong>オンライン</strong>なので、どこからでも気軽に受けられます。
+    </p>
+  </div>
+</section>
+
+<!-- BENEFITS -->
+<section class="benefits">
+  <h2 class="section-title">FPガチャを使う<br><span>5つのメリット</span></h2>
+  <div class="benefits-grid">
+    <div class="benefit-card">
+      <div class="icon">🆓</div>
+      <h3>完全無料で相談できる</h3>
+      <p>相談料は一切かかりません。FPへの成果報酬もゼロ。純粋にあなたの悩みを解決するための時間です。</p>
+    </div>
+    <div class="benefit-card">
+      <div class="icon">🎓</div>
+      <h3>全員が資格保有のプロFP</h3>
+      <p>登録しているFPは全員、FPを本業とする国家資格保有者。素人のアドバイスとは次元が違います。</p>
+    </div>
+    <div class="benefit-card">
+      <div class="icon">💬</div>
+      <h3>第三者だから話しやすい</h3>
+      <p>家族や友人には話しにくいお金の悩みも、利害関係のないプロだからこそ正直に話せます。</p>
+    </div>
+    <div class="benefit-card">
+      <div class="icon">📱</div>
+      <h3>LINEで完結・オンライン</h3>
+      <p>使い慣れたLINEで予約から参加まで完結。自宅でも移動中でも、好きな場所から相談できます。</p>
+    </div>
+    <div class="benefit-card">
+      <div class="icon">🔒</div>
+      <h3>個人情報は厳重管理</h3>
+      <p>登録情報は厳格に管理されています。何かを無理に売られることも、しつこい営業も一切ありません。</p>
+    </div>
+    <div class="benefit-card">
+      <div class="icon">⚡</div>
+      <h3>AIが最適なFPを即マッチング</h3>
+      <p>あなたの悩みをAIが瞬時に分析。ライフステージや専門領域を考慮して、最適なFPをすぐ見つけます。</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how">
+  <h2 class="section-title">使い方は<span>たったの4ステップ</span></h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">
+        <h4>LINEで悩みを送る</h4>
+        <p>「老後が心配」「保険を見直したい」など、思ったままを送るだけ。難しい入力は不要です。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text">
+        <h4>AIがマッチング</h4>
+        <p>ライフステージ・年代・悩みの内容からAIが最適なFPを自動で選びます。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">
+        <h4>日時を選んで予約完了</h4>
+        <p>表示された空き時間から希望の日時を選ぶだけ。その場で予約が確定します。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text">
+        <h4>当日オンラインで相談</h4>
+        <p>FPからオンライン会議のURLが届きます。スマホからでも参加できます。カメラ顔出しは任意です。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SAFE -->
+<section class="safe">
+  <h2 class="section-title">安心・安全の<br><span>ポイント</span></h2>
+  <div class="safe-grid">
+    <div class="safe-card">
+      <div class="icon">🛡️</div>
+      <h3>売り込みは一切なし</h3>
+      <p>FPが金融商品を売って手数料を得る仕組みはありません。純粋なアドバイスのみです。</p>
+    </div>
+    <div class="safe-card">
+      <div class="icon">🔐</div>
+      <h3>個人情報の厳重管理</h3>
+      <p>ご相談内容・個人情報は厳格に管理。第三者に提供されることはありません。</p>
+    </div>
+    <div class="safe-card">
+      <div class="icon">💴</div>
+      <h3>完全無料・隠れた費用なし</h3>
+      <p>相談料・登録料・手数料、すべてゼロ。サービス内で費用が発生することはありません。</p>
+    </div>
+    <div class="safe-card">
+      <div class="icon">🏅</div>
+      <h3>全員が本業FP</h3>
+      <p>登録FPは全員、FPを本業とするプロフェッショナルです。副業や素人は登録できません。</p>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <h2 class="section-title">よくある<br><span>質問</span></h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <div class="faq-q">本当に無料ですか？</div>
+      <div class="faq-a">はい、完全無料です。相談料・登録料・手数料など、一切費用は発生しません。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">名前や連絡先を教えないといけませんか？</div>
+      <div class="faq-a">LINEのニックネームやイニシャルでも相談できます。個人情報の開示は強制しません。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">しつこい営業はありませんか？</div>
+      <div class="faq-a">ありません。FPからの営業・勧誘は禁止しています。相談後に何かを購入する義務も一切ありません。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">どんな悩みでも相談できますか？</div>
+      <div class="faq-a">お金に関することなら何でも大丈夫です。保険・貯蓄・投資・家計・老後・教育費・相続・節税など、幅広くお受けします。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">スマホだけで使えますか？</div>
+      <div class="faq-a">はい。LINEが使えるスマホがあれば、他に何も必要ありません。パソコンからも利用できます。</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>まずは気軽に<br>相談してみよう 🎲</h2>
+  <p>費用ゼロ・オンライン・FPガチャで<br>あなたのお金の悩みを解決しよう</p>
+  <a href="https://lin.ee/7OS8Lib" class="cta-line-btn">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.105.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+    LINEで無料相談スタート
+  </a>
+  <p class="cta-note">登録不要・今すぐ始められます</p>
+</section>
+
+<footer>
+  &copy; 2025 FPガチャ. All rights reserved.
+</footer>
+
+</body>
+</html>
