@@ -52,9 +52,11 @@ export default {
     if (url.pathname === '/fp' || url.pathname === '/fp/') {
       return Response.redirect(`${env.WORKER_URL}/fp/register`, 301);
     }
-    if (url.pathname === '/fp/register') {
-      if (request.method === 'GET')  return env.ASSETS.fetch(new Request(new URL('/fp/register.html', url)));
-      if (request.method === 'POST') return handleFPWebRegStart(request, env);
+    if (url.pathname === '/fp/register' && request.method === 'GET') {
+      return env.ASSETS.fetch(new Request(new URL('/fp/register.html', url)));
+    }
+    if (url.pathname === '/fp/register-submit' && request.method === 'POST') {
+      return handleFPWebRegStart(request, env);
     }
 
     if (request.method !== 'POST' || url.pathname !== '/webhook') {
