@@ -15,6 +15,26 @@ const LIFECYCLE_STAGES = [
   { key: 'family_nochild', label: '世帯・子なし' },
   { key: 'senior',         label: '高齢者' },
 ];
+
+// 詳細ライフステージ（クライアント用 / FP登録フォーム用）
+const CLIENT_LIFECYCLE_DETAIL = [
+  { key: 'single_marry_yes',   label: '独身・結婚予定あり',    legacy: 'single' },
+  { key: 'single_marry_no',    label: '独身・結婚予定なし',    legacy: 'single' },
+  { key: 'married_no_child',   label: '既婚・子なし',         legacy: 'family_nochild' },
+  { key: 'married_child_home', label: '既婚・子あり（同居）',  legacy: 'family_child' },
+  { key: 'married_child_out',  label: '既婚・子あり（独立）',  legacy: 'family_child' },
+  { key: 'divorced_child',     label: '離別・子あり',         legacy: 'family_child' },
+];
+
+// 詳細キー → legacy lifecycle_stage へのマッピング
+const FAMILY_STAGE_LEGACY = {
+  single_marry_yes:   'single',
+  single_marry_no:    'single',
+  married_no_child:   'family_nochild',
+  married_child_home: 'family_child',
+  married_child_out:  'family_child',
+  divorced_child:     'family_child',
+};
 const AGE_RANGES = [
   { key: '20s', label: '20代' }, { key: '30s', label: '30代' },
   { key: '40s', label: '40代' }, { key: '50s', label: '50代' },
@@ -127,7 +147,8 @@ async function onPostback(ev, env) {
   const act = p.get('action');
 
   if (act === 'fp_lc')        return fpLifecycleTap(uid, rt, p, env);
-  if (act === 'lc')           return clientLifecycleTap(uid, rt, p, env);
+  if (act === 'lc')           return clientLifecycleTap(uid, rt, p, env);   // 旧フロー互換
+  if (act === 'lc_detail')    return clientLifecycleDetailTap(uid, rt, p, env);
   if (act === 'age')          return clientAgeTap(uid, rt, p, env);
   if (act === 'slot')         return clientSlotTap(uid, rt, p, env);
   if (act === 'rate')         return clientRate(uid, rt, p, env);
@@ -211,9 +232,11 @@ function lcQRItems(selected, action) {
 // ══════════════════════════════════════════════════════
 async function handleFPWebRegStart(request, env) {
   const data = await request.formData();
-  const name = (data.get('name') || '').trim();
-  const specialties = data.getAll('specialties');
-  const formats = data.getAll('formats');
+  const name          = (data.get('name') || '').trim();
+  const specialties   = data.getAll('specialties');
+  const formats       = data.getAll('formats');
+  const age_ranges    = data.getAll('age_ranges');
+  const family_stages = data.getAll('family_stages');
 
   if (!name) {
     return Response.redirect(`${env.WORKER_URL}/fp/register?error=name`, 302);
@@ -225,13 +248,18 @@ async function handleFPWebRegStart(request, env) {
     return Response.redirect(`${env.WORKER_URL}/fp/register?error=format`, 302);
   }
 
+  // 詳細家族構成 → legacy lifecycle_stages に変換（既存マッチングとの互換性維持）
+  const legacyStages = [...new Set(family_stages.map(k => FAMILY_STAGE_LEGACY[k]).filter(Boolean))];
+
   const webId = `web_${crypto.randomUUID()}`;
   await kv(env).put(`fp_reg:${webId}`, JSON.stringify({
     step: 'oauth',
     name,
-    lifecycle_stages: ['single', 'family_child', 'family_nochild', 'senior'],
+    lifecycle_stages: legacyStages.length ? legacyStages : ['single', 'family_child', 'family_nochild', 'senior'],
     specialties,
     formats,
+    age_ranges,
+    family_stages,
     source: 'web',
   }), { expirationTtl: 3600 });
 
@@ -296,6 +324,8 @@ async function oauthCallback(request, env) {
     specialties:          state.specialties || [],
     google_calendar_id:   calId,
     google_refresh_token: tokens.refresh_token,
+    age_ranges:           state.age_ranges || [],
+    family_stages:        state.family_stages || [],
   }, env);
 
   await kv(env).delete(`fp_reg:${uid}`);
@@ -360,12 +390,44 @@ async function startClient(uid, rt, env) {
 }
 
 async function clientStep(uid, text, rt, state, env) {
+  const detailQR = CLIENT_LIFECYCLE_DETAIL.map(s => ({
+    type: 'action',
+    action: { type: 'postback', label: s.label, data: `action=lc_detail&key=${s.key}`, displayText: s.label },
+  }));
+
   if (state.step === 'concern') {
-    await kv(env).put(`client:${uid}`, JSON.stringify({ step: 'lifecycle', concern: text }), { expirationTtl: KV_TTL });
-    await replyQR(rt, 'ありがとうございます 🌿\nご自身のライフステージを教えてください。',
-      LIFECYCLE_STAGES.map(s => ({ type: 'action', action: { type: 'postback', label: s.label, data: `action=lc&key=${s.key}`, displayText: s.label } })),
-      env);
+    await kv(env).put(`client:${uid}`, JSON.stringify({ step: 'lifecycle_detail', concern: text }), { expirationTtl: KV_TTL });
+    await replyQR(rt,
+      'ありがとうございます 🌿\n\n少し教えてください。現在おひとりですか、ご家族はいらっしゃいますか？',
+      detailQR, env);
+  } else if (state.step === 'lifecycle_detail') {
+    // テキストを送った場合はボタンを再表示
+    await replyQR(rt, '下のボタンから選んでください 🌿', detailQR, env);
   }
+}
+
+async function clientLifecycleDetailTap(uid, rt, p, env) {
+  const key = p.get('key');
+  const raw = await kv(env).get(`client:${uid}`);
+  if (!raw) return startClient(uid, rt, env);
+  const state = JSON.parse(raw);
+
+  const detail = CLIENT_LIFECYCLE_DETAIL.find(d => d.key === key);
+  if (!detail) return;
+
+  await kv(env).put(`client:${uid}`, JSON.stringify({
+    ...state,
+    step: 'age',
+    lifecycle: detail.legacy,       // legacy キー（旧FP照合に使用）
+    lifecycle_detail: key,          // 詳細キー（新FP照合・セッション保存）
+  }), { expirationTtl: KV_TTL });
+
+  await replyQR(rt, 'ありがとうございます！\nご年代を教えてください。',
+    AGE_RANGES.map(a => ({
+      type: 'action',
+      action: { type: 'postback', label: a.label, data: `action=age&key=${a.key}`, displayText: a.label },
+    })),
+    env);
 }
 
 async function clientLifecycleTap(uid, rt, p, env) {
@@ -384,13 +446,13 @@ async function clientAgeTap(uid, rt, p, env) {
   const ageKey = p.get('key');
   const raw    = await kv(env).get(`client:${uid}`);
   if (!raw) return startClient(uid, rt, env);
-  const { concern, lifecycle } = JSON.parse(raw);
+  const { concern, lifecycle, lifecycle_detail } = JSON.parse(raw);
 
   await reply(rt, 'ありがとうございます ✅\nAIがお悩みを分析して最適なFPを探しています… 🔍\n少しお待ちください。', env);
 
   // AIで分類 → FP検索 → スロット集計
   const categories = await categorizeConcern(concern, env);
-  const fps        = await findFPs(lifecycle, categories, env);
+  const fps        = await findFPs(lifecycle, ageKey, categories, lifecycle_detail || null, env);
 
   if (!fps.length) {
     await push(uid, '現在マッチするFPが見つかりませんでした 🙏\nしばらくしてから再度お試しください。', env);
@@ -405,7 +467,13 @@ async function clientAgeTap(uid, rt, p, env) {
     return;
   }
 
-  const sessionId = await createSession({ client_line_user_id: uid, concern, lifecycle_stage: lifecycle, age_range: ageKey, matched_categories: categories }, env);
+  const sessionId = await createSession({
+    client_line_user_id: uid, concern,
+    lifecycle_stage: lifecycle,
+    lifecycle_detail: lifecycle_detail || null,
+    age_range: ageKey,
+    matched_categories: categories,
+  }, env);
   await kv(env).put(`client:${uid}`, JSON.stringify({ step: 'slots', concern, lifecycle, age: ageKey, slots, session_id: sessionId, fp_ids: fps.map(f => f.id) }), { expirationTtl: KV_TTL });
 
   await pushFlex(uid, slotFlex(slots, fps.length), env);
@@ -737,14 +805,28 @@ async function categorizeConcern(concern, env) {
   return keys.length ? keys : ['other'];
 }
 
-async function findFPs(lifecycle, categories, env) {
+async function findFPs(lifecycle, ageRange, categories, familyDetail, env) {
   const res  = await fetch(`${env.SUPABASE_URL}/rest/v1/fp_fps?active=eq.true&select=*`, { headers: sbHeaders(env) });
   const rows = await res.json();
   if (!Array.isArray(rows)) return [];
-  return rows.filter(fp =>
-    fp.lifecycle_stages?.includes(lifecycle) &&
-    fp.specialties?.some(s => categories.includes(s))
-  );
+  return rows.filter(fp => {
+    // 専門領域マッチ（必須）
+    if (!fp.specialties?.some(s => categories.includes(s))) return false;
+
+    // 家族構成マッチ
+    // - family_stages 設定済みFP → 詳細キーで照合
+    // - 未設定（LINE登録など旧来FP）→ legacy lifecycle_stages で照合
+    if (fp.family_stages?.length) {
+      if (familyDetail && !fp.family_stages.includes(familyDetail)) return false;
+    } else {
+      if (!fp.lifecycle_stages?.includes(lifecycle)) return false;
+    }
+
+    // 年代マッチ（FPが age_ranges を設定している場合のみ）
+    if (fp.age_ranges?.length && !fp.age_ranges.includes(ageRange)) return false;
+
+    return true;
+  });
 }
 
 // ── FP Notification ───────────────────────────────────

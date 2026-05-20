@@ -259,6 +259,25 @@
       color: #7ee8c8;
     }
 
+    /* ── 家族構成グループ ── */
+    .family-group { display: flex; flex-direction: column; gap: 16px; }
+    .family-group-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: -4px;
+    }
+    .family-group-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+    }
+
     /* ── SUBMIT ── */
     .submit-area { margin-top: 40px; }
     .submit-btn {
@@ -319,7 +338,11 @@
     <div class="step-line"></div>
     <div class="step-dot active">2</div>
     <div class="step-line"></div>
-    <div class="step-dot">3</div>
+    <div class="step-dot active">3</div>
+    <div class="step-line"></div>
+    <div class="step-dot active">4</div>
+    <div class="step-line"></div>
+    <div class="step-dot active">5</div>
   </div>
 
   <div id="errorMsg" class="error-msg"></div>
@@ -397,6 +420,87 @@
           <label for="fmt_face">
             <span class="fmt-icon">🤝</span> 対面
           </label>
+        </div>
+      </div>
+
+      <hr class="form-divider">
+
+      <!-- STEP 4: 対応世代 -->
+      <p class="sec-label">STEP 4</p>
+      <p class="sec-title">
+        対応世代
+        <small>複数選択可（未選択の場合は全世代対応とみなします）</small>
+      </p>
+      <div class="check-grid">
+        <div class="check-item">
+          <input type="checkbox" id="ag_20s" name="age_ranges" value="20s">
+          <label for="ag_20s">📗 20代</label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" id="ag_30s" name="age_ranges" value="30s">
+          <label for="ag_30s">📘 30代</label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" id="ag_40s" name="age_ranges" value="40s">
+          <label for="ag_40s">📙 40代</label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" id="ag_50s" name="age_ranges" value="50s">
+          <label for="ag_50s">📕 50代</label>
+        </div>
+        <div class="check-item">
+          <input type="checkbox" id="ag_60p" name="age_ranges" value="60plus">
+          <label for="ag_60p">📒 60代以上</label>
+        </div>
+      </div>
+
+      <hr class="form-divider">
+
+      <!-- STEP 5: 得意な相談者属性（家族構成） -->
+      <p class="sec-label">STEP 5</p>
+      <p class="sec-title">
+        得意な相談者属性（家族構成）
+        <small>複数選択可（未選択の場合は全属性対応とみなします）</small>
+      </p>
+      <div class="family-group">
+        <div>
+          <div class="family-group-header">独身</div>
+          <div class="check-grid" style="margin-top:10px">
+            <div class="check-item">
+              <input type="checkbox" id="fs_smy" name="family_stages" value="single_marry_yes">
+              <label for="fs_smy">💍 結婚予定あり</label>
+            </div>
+            <div class="check-item">
+              <input type="checkbox" id="fs_smn" name="family_stages" value="single_marry_no">
+              <label for="fs_smn">🙋 結婚予定なし</label>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="family-group-header">既婚</div>
+          <div class="check-grid" style="margin-top:10px">
+            <div class="check-item">
+              <input type="checkbox" id="fs_mnc" name="family_stages" value="married_no_child">
+              <label for="fs_mnc">👫 既婚・子なし</label>
+            </div>
+            <div class="check-item">
+              <input type="checkbox" id="fs_mch" name="family_stages" value="married_child_home">
+              <label for="fs_mch">👨‍👩‍👧 子あり（同居）</label>
+            </div>
+            <div class="check-item">
+              <input type="checkbox" id="fs_mco" name="family_stages" value="married_child_out">
+              <label for="fs_mco">🏠 子あり（独立済）</label>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="family-group-header">その他</div>
+          <div class="check-grid" style="margin-top:10px">
+            <div class="check-item">
+              <input type="checkbox" id="fs_dc" name="family_stages" value="divorced_child">
+              <label for="fs_dc">👩‍👧 離別・子あり</label>
+            </div>
+          </div>
         </div>
       </div>
 
