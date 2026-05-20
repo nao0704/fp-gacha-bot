@@ -29,6 +29,13 @@ create table if not exists gacha_sessions (
   status               text not null default 'started',
   -- started → categorized → slots_shown → confirmed → completed → rated
   rating               integer check (rating between 1 and 5),
+  -- 相談後フォローアップ用（migration_follow_up.sql で追加）
+  consultation_date    timestamptz,
+  fp_line_user_id      text,
+  fp_result            text,             -- 成約 / 失注 / 継続中
+  client_result        text,             -- 契約予定 / 未契約 / 検討中
+  commission_flag      boolean default false,
+  result_notified_at   timestamptz,
   created_at           timestamptz not null default now(),
   updated_at           timestamptz not null default now()
 );

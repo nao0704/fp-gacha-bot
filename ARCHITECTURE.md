@@ -36,6 +36,7 @@ fp-gacha-bot/
 | Worker名 | `fp-gacha-bot` |
 | KV binding | `GACHA_STATE` |
 | Cron | `0 * * * *`（毎時・評価ジョブ送信） |
+| Cron | `0 0 * * *`（毎朝9時JST・相談後フォローアップ） |
 | SUPABASE_URL | `https://spfyisnsjobyaebsradv.supabase.co` |
 | WORKER_URL | `https://fp-gacha-bot.parcy0704.workers.dev` |
 
@@ -93,6 +94,12 @@ Secrets（`wrangler secret put` で設定）:
 | `scheduled_start/end` | 相談日時 |
 | `status` | `started` / `confirmed` / `rated` |
 | `rating` | 1〜5の評価 |
+| `consultation_date` | 相談終了日時（slot.end）。翌朝フォローアップの基準 |
+| `fp_line_user_id` | 担当FPのLINE User ID（Push送信用） |
+| `fp_result` | FP報告結果：`成約` / `失注` / `継続中` |
+| `client_result` | 相談者報告：`契約予定` / `未契約` / `検討中` |
+| `commission_flag` | `fp_result=失注` かつ `client_result=契約予定` で `true`（乖離検知） |
+| `result_notified_at` | フォローアップ通知送信日時（72h無回答判定の基準） |
 
 ### `fp_rating_jobs`（評価リクエスト送信ジョブ）
 | カラム | 説明 |
@@ -125,7 +132,7 @@ Secrets（`wrangler secret put` で設定）:
 | 関数 | 役割 |
 |---|---|
 | `export default.fetch` | Webhook受信・ルーティング |
-| `export default.scheduled` | 毎時Cron→評価ジョブ処理 |
+| `export default.scheduled` | Cron振り分け：毎時→評価ジョブ、毎朝9時JST→フォローアップ |
 
 ### イベントハンドラ
 
@@ -187,6 +194,18 @@ Secrets（`wrangler secret put` で設定）:
 | `clientRate` | 星評価をセッションに保存 |
 | `processRatingJobs` | 毎時Cronで`send_at`を過ぎたジョブを送信 |
 
+### 相談後フォローアップ
+
+| 関数 | 役割 |
+|---|---|
+| `processFollowUps` | 毎朝9時JST：前日セッションのFP・相談者にQuick Replyプッシュ送信 |
+| `processNoResponse` | 72時間無回答セッションを`fp_result=失注`に自動更新しFPに通知 |
+| `pushFollowUpQR` | Quick Reply付きPushメッセージをFP/相談者に送信 |
+| `saveFPResult` | FPのPostback回答（成約/失注/継続中）をDBに保存 |
+| `saveClientResult` | 相談者のPostback回答（契約予定/未契約/検討中）をDBに保存 |
+| `checkCommissionFlag` | 両回答が揃った後に乖離チェック→`commission_flag=true`を設定 |
+| `getSession` | セッションIDでセッションを取得 |
+
 ### Flex Messageビルダー
 
 | 関数 | 役割 |
@@ -228,6 +247,27 @@ Secrets（`wrangler secret put` で設定）:
 - 相談終了予定時刻（`slot.end`）の1時間後に`fp_rating_jobs`にジョブを登録
 - 毎時Cronが`send_at <= 現在時刻`のジョブを検索してFlex送信
 - ユーザーが1〜5の星をタップ → セッションに保存
+
+---
+
+## 相談後フォローアップフロー
+
+```
+相談当日: clientSlotTap で consultation_date=slot.end, fp_line_user_id を保存
+     ↓
+翌朝9時JST: processFollowUps 起動
+     ↓
+前日セッション(result_notified_at IS NULL)を取得
+     ↓
+FP に Push「成約 / 失注 / 継続中」Quick Reply
+相談者に Push「契約予定 / 未契約 / 検討中」Quick Reply
+result_notified_at = now() を記録
+     ↓
+回答があれば: fp_result / client_result を保存
+  → fp_result=失注 かつ client_result=契約予定 → commission_flag=true（乖離検知）
+     ↓
+72時間無回答: processNoResponse で fp_result=失注 に自動更新 + FPに通知
+```
 
 ---
 

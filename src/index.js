@@ -495,6 +495,11 @@ async function processNoResponse(env) {
 
   for (const s of sessions) {
     await updateSession(s.id, { fp_result: '失注' }, env);
+    if (s.fp_line_user_id) {
+      await push(s.fp_line_user_id,
+        '72時間ご回答がなかったため、先日の相談を「失注」として自動処理しました。\n' +
+        '実際と異なる場合はお手数ですが事務局までご連絡ください。', env);
+    }
     console.log(`[followup] 72h no-response → 失注 session=${s.id}`);
   }
 }
