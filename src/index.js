@@ -44,7 +44,19 @@ export default {
 
     if (url.pathname === '/oauth/start')    return oauthStart(request, env);
     if (url.pathname === '/oauth/callback') return oauthCallback(request, env);
-    if (request.method === 'GET')           return new Response('FP Gacha Bot 🎲', { status: 200 });
+
+    // 静的ページ
+    if (request.method === 'GET' && url.pathname === '/') {
+      return env.ASSETS.fetch(new Request(new URL('/index.html', url)));
+    }
+    if (url.pathname === '/fp' || url.pathname === '/fp/') {
+      return Response.redirect(`${env.WORKER_URL}/fp/register`, 301);
+    }
+    if (url.pathname === '/fp/register') {
+      if (request.method === 'GET')  return env.ASSETS.fetch(new Request(new URL('/fp/register.html', url)));
+      if (request.method === 'POST') return handleFPWebRegStart(request, env);
+    }
+
     if (request.method !== 'POST' || url.pathname !== '/webhook') {
       return new Response('Not Found', { status: 404 });
     }
@@ -193,6 +205,38 @@ function lcQRItems(selected, action) {
 }
 
 // ══════════════════════════════════════════════════════
+//  FP Web Registration（/fp/register POST）
+// ══════════════════════════════════════════════════════
+async function handleFPWebRegStart(request, env) {
+  const data = await request.formData();
+  const name = (data.get('name') || '').trim();
+  const specialties = data.getAll('specialties');
+  const formats = data.getAll('formats');
+
+  if (!name) {
+    return Response.redirect(`${env.WORKER_URL}/fp/register?error=name`, 302);
+  }
+  if (!specialties.length) {
+    return Response.redirect(`${env.WORKER_URL}/fp/register?error=specialty`, 302);
+  }
+  if (!formats.length) {
+    return Response.redirect(`${env.WORKER_URL}/fp/register?error=format`, 302);
+  }
+
+  const webId = `web_${crypto.randomUUID()}`;
+  await kv(env).put(`fp_reg:${webId}`, JSON.stringify({
+    step: 'oauth',
+    name,
+    lifecycle_stages: ['single', 'family_child', 'family_nochild', 'senior'],
+    specialties,
+    formats,
+    source: 'web',
+  }), { expirationTtl: 3600 });
+
+  return Response.redirect(`${env.WORKER_URL}/oauth/start?state=${webId}`, 302);
+}
+
+// ══════════════════════════════════════════════════════
 //  Google OAuth
 // ══════════════════════════════════════════════════════
 async function oauthStart(request, env) {
@@ -254,7 +298,43 @@ async function oauthCallback(request, env) {
 
   await kv(env).delete(`fp_reg:${uid}`);
 
-  // FPにLINEで完了通知
+  const isWebReg = uid.startsWith('web_');
+
+  if (isWebReg) {
+    // Web登録：LINE通知なし、専用完了ページを表示
+    return new Response(`
+      <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>登録完了｜FPガチャ</title>
+      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+      <style>
+        body{font-family:'Noto Sans JP',sans-serif;background:#07111f;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+        .card{background:rgba(26,74,122,0.25);border:1px solid rgba(126,232,200,0.2);border-radius:24px;padding:48px 36px;max-width:480px;width:100%}
+        .icon{font-size:3.5rem;margin-bottom:20px}
+        h1{font-size:1.6rem;font-weight:900;color:#7ee8c8;margin-bottom:12px}
+        p{font-size:0.95rem;line-height:1.85;color:rgba(255,255,255,0.78);margin-bottom:16px}
+        .line-btn{display:inline-flex;align-items:center;gap:10px;background:#06C755;color:#fff;font-weight:900;font-size:1rem;padding:16px 36px;border-radius:999px;text-decoration:none;margin-top:8px}
+        .note{font-size:0.8rem;color:rgba(255,255,255,0.35);margin-top:20px}
+        footer{margin-top:48px;font-size:0.8rem;color:rgba(255,255,255,0.25)}
+      </style></head>
+      <body>
+        <div class="card">
+          <div class="icon">✅</div>
+          <h1>Googleカレンダー連携完了！</h1>
+          <p>FPガチャへのパートナー登録が完了しました。</p>
+          <p>予約通知をLINEで受け取るには、FPガチャのLINE公式アカウントを<br>友だち追加して「登録」と送ってください。</p>
+          <a href="https://lin.ee/7OS8Lib" class="line-btn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.105.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+            LINEで通知設定を完了する
+          </a>
+          <p class="note">※ LINE連携は任意です。カレンダー連携のみでも相談受付は始まります。</p>
+        </div>
+        <footer>&copy; 2025 FPガチャ</footer>
+      </body></html>
+    `, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+  }
+
+  // LINE登録フロー：LINEで完了通知を送る
   await push(uid, `Googleカレンダーの連携が完了しました ✅\n\nFP登録が完了です！\n予約が入り次第LINEでお知らせします 🌿\n\n「一時停止」：受付を一時停止\n「再開」：受付を再開`, env);
 
   return new Response(`

@@ -2,6 +2,10 @@ name = "fp-gacha-bot"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
 [vars]
 SUPABASE_URL = "https://spfyisnsjobyaebsradv.supabase.co"
 WORKER_URL   = "https://fp-gacha-bot.parcy0704.workers.dev"
