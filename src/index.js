@@ -64,9 +64,10 @@ export default {
     return new Response('OK', { status: 200 });
   },
 
-  // 毎時cron：評価リクエスト送信
+  // 毎時cron：評価リクエスト送信 / 毎朝9時JST(0時UTC)：相談後フォローアップ
   async scheduled(event, env) {
-    await processRatingJobs(env);
+    if (event.cron === '0 0 * * *') await processFollowUps(env);
+    if (event.cron === '0 * * * *') await processRatingJobs(env);
   },
 };
 
@@ -111,11 +112,13 @@ async function onPostback(ev, env) {
   const p   = new URLSearchParams(ev.postback.data);
   const act = p.get('action');
 
-  if (act === 'fp_lc')   return fpLifecycleTap(uid, rt, p, env);
-  if (act === 'lc')      return clientLifecycleTap(uid, rt, p, env);
-  if (act === 'age')     return clientAgeTap(uid, rt, p, env);
-  if (act === 'slot')    return clientSlotTap(uid, rt, p, env);
-  if (act === 'rate')    return clientRate(uid, rt, p, env);
+  if (act === 'fp_lc')        return fpLifecycleTap(uid, rt, p, env);
+  if (act === 'lc')           return clientLifecycleTap(uid, rt, p, env);
+  if (act === 'age')          return clientAgeTap(uid, rt, p, env);
+  if (act === 'slot')         return clientSlotTap(uid, rt, p, env);
+  if (act === 'rate')         return clientRate(uid, rt, p, env);
+  if (act === 'fp_result')    return saveFPResult(uid, rt, p, env);
+  if (act === 'client_result') return saveClientResult(uid, rt, p, env);
 }
 
 // ══════════════════════════════════════════════════════
@@ -342,7 +345,14 @@ async function clientSlotTap(uid, rt, p, env) {
   }
   const winner = avail[Math.floor(Math.random() * avail.length)];
 
-  await updateSession(session_id, { selected_fp_id: winner.id, scheduled_start: slot.start, scheduled_end: slot.end, status: 'confirmed' }, env);
+  await updateSession(session_id, {
+    selected_fp_id:   winner.id,
+    scheduled_start:  slot.start,
+    scheduled_end:    slot.end,
+    status:           'confirmed',
+    fp_line_user_id:  winner.line_user_id,
+    consultation_date: slot.end,
+  }, env);
   await kv(env).delete(`client:${uid}`);
 
   const { m, d, wd, h } = jstParts(slot.start);
@@ -434,6 +444,105 @@ async function processRatingJobs(env) {
     await fetch(`${env.SUPABASE_URL}/rest/v1/fp_rating_jobs?id=eq.${job.id}`, {
       method: 'PATCH', headers: sbHeaders(env), body: JSON.stringify({ sent: true }),
     });
+  }
+}
+
+// ── 相談後フォローアップ（毎朝9時JST） ─────────────────────
+async function processFollowUps(env) {
+  // 前日（JST）の開始・終了をUTCで算出
+  const nowMs = Date.now();
+  const jstMs = nowMs + JST;
+  const jstToday = new Date(jstMs);
+  jstToday.setUTCHours(0, 0, 0, 0);
+  const todayStartUtc     = new Date(jstToday.getTime() - JST);
+  const yesterdayStartUtc = new Date(todayStartUtc.getTime() - 86_400_000);
+
+  // 前日セッションで未通知のものを取得
+  const gte = encodeURIComponent(yesterdayStartUtc.toISOString());
+  const lt  = encodeURIComponent(todayStartUtc.toISOString());
+  const res = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?consultation_date=gte.${gte}&consultation_date=lt.${lt}&result_notified_at=is.null&select=*`,
+    { headers: sbHeaders(env) }
+  );
+  const sessions = await res.json();
+  if (!Array.isArray(sessions)) return;
+
+  for (const s of sessions) {
+    // FPにQuick Replyプッシュ
+    if (s.fp_line_user_id) {
+      await pushFollowUpQR(s.fp_line_user_id, s.id, 'fp', env);
+    }
+    // 相談者にQuick Replyプッシュ
+    if (s.client_line_user_id) {
+      await pushFollowUpQR(s.client_line_user_id, s.id, 'client', env);
+    }
+    // 通知済みマーク
+    await updateSession(s.id, { result_notified_at: new Date().toISOString() }, env);
+  }
+
+  // 72時間無回答を失注として自動処理
+  await processNoResponse(env);
+}
+
+async function processNoResponse(env) {
+  const cutoff = encodeURIComponent(new Date(Date.now() - 72 * 3_600_000).toISOString());
+  const res = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?result_notified_at=lte.${cutoff}&fp_result=is.null&select=*`,
+    { headers: sbHeaders(env) }
+  );
+  const sessions = await res.json();
+  if (!Array.isArray(sessions)) return;
+
+  for (const s of sessions) {
+    await updateSession(s.id, { fp_result: '失注' }, env);
+    console.log(`[followup] 72h no-response → 失注 session=${s.id}`);
+  }
+}
+
+async function pushFollowUpQR(uid, sessionId, role, env) {
+  const isFP = role === 'fp';
+  const text = isFP
+    ? '昨日の相談はいかがでしたか？ 🌿\n結果をお知らせください。'
+    : '昨日のFP相談はいかがでしたか？ 🌿\n相談後のご状況をお聞かせください。';
+  const act = isFP ? 'fp_result' : 'client_result';
+  const choices = isFP
+    ? ['成約', '失注', '継続中']
+    : ['契約予定', '未契約', '検討中'];
+
+  const items = choices.map(val => ({
+    type: 'action',
+    action: { type: 'postback', label: val, data: `action=${act}&sid=${sessionId}&val=${encodeURIComponent(val)}`, displayText: val },
+  }));
+
+  await replyQR(null, text, items, env, uid);
+}
+
+// ── フォローアップ回答保存 ────────────────────────────────
+async function saveFPResult(uid, rt, p, env) {
+  const sid = p.get('sid');
+  const val = p.get('val');
+  if (!sid || !val) return;
+  await updateSession(sid, { fp_result: val }, env);
+  await reply(rt, `回答ありがとうございます ✅\n結果「${val}」を記録しました。`, env);
+  await checkCommissionFlag(sid, env);
+}
+
+async function saveClientResult(uid, rt, p, env) {
+  const sid = p.get('sid');
+  const val = p.get('val');
+  if (!sid || !val) return;
+  await updateSession(sid, { client_result: val }, env);
+  await reply(rt, `ご回答ありがとうございます ✅\n「${val}」を記録しました。`, env);
+  await checkCommissionFlag(sid, env);
+}
+
+async function checkCommissionFlag(sessionId, env) {
+  const s = await getSession(sessionId, env);
+  if (!s) return;
+  // FP=失注 かつ 相談者=契約予定 → commission_flag=true
+  if (s.fp_result === '失注' && s.client_result === '契約予定') {
+    await updateSession(sessionId, { commission_flag: true }, env);
+    console.log(`[followup] commission_flag=true session=${sessionId}`);
   }
 }
 
@@ -660,6 +769,11 @@ async function patchFP(uid, data, env) {
     method: 'PATCH', headers: sbHeaders(env), body: JSON.stringify(data),
   });
 }
+async function getSession(id, env) {
+  const r = await fetch(`${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?id=eq.${id}&limit=1&select=*`, { headers: sbHeaders(env) });
+  const d = await r.json();
+  return Array.isArray(d) && d.length ? d[0] : null;
+}
 async function createSession(data, env) {
   const r = await fetch(`${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions`, {
     method: 'POST',
@@ -689,12 +803,21 @@ async function reply(rt, text, env) {
     body: JSON.stringify({ replyToken: rt, messages: [{ type: 'text', text }] }),
   });
 }
-async function replyQR(rt, text, items, env) {
-  await fetch('https://api.line.me/v2/bot/message/reply', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${env.LINE_CHANNEL_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ replyToken: rt, messages: [{ type: 'text', text, quickReply: { items } }] }),
-  });
+async function replyQR(rt, text, items, env, pushUid) {
+  const msg = { type: 'text', text, quickReply: { items } };
+  if (pushUid) {
+    await fetch('https://api.line.me/v2/bot/message/push', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${env.LINE_CHANNEL_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to: pushUid, messages: [msg] }),
+    });
+  } else {
+    await fetch('https://api.line.me/v2/bot/message/reply', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${env.LINE_CHANNEL_ACCESS_TOKEN}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ replyToken: rt, messages: [msg] }),
+    });
+  }
 }
 async function push(uid, text, env) {
   await fetch('https://api.line.me/v2/bot/message/push', {

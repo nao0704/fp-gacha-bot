@@ -11,4 +11,4 @@ binding = "GACHA_STATE"
 id = "e5dd2bd4c8c047cca1e1e7eec46ce7e7"
 
 [triggers]
-crons = ["0 * * * *"]
+crons = ["0 * * * *", "0 0 * * *"]
