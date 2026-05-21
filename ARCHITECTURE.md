@@ -6,7 +6,7 @@
 
 - **インフラ**: Cloudflare Workers
 - **LINE**: Messaging API（Webhook受信 / Push送信 / Flex Message）
-- **AI**: Claude Haiku（悩みカテゴリ分類）
+- **AI**: Claude Haiku（Phase 1 悩み深掘り会話 / 悩みカテゴリ分類）
 - **DB**: Supabase（FP情報・セッション・評価ジョブ）
 - **状態管理**: Cloudflare KV（`GACHA_STATE`）
 - **カレンダー**: Google Calendar API（OAuth2・FPごとの個人アカウント）
@@ -64,7 +64,9 @@ Secrets（`wrangler secret put` で設定）:
 | キー | 内容 | TTL |
 |---|---|---|
 | `fp_reg:{userId}` | FP登録フロー途中状態 | 1時間 |
-| `client:{userId}` | クライアント相談フロー途中状態 | 1時間 |
+| `client:{userId}` | クライアント相談フロー途中状態（旧フロー） | 1時間 |
+| `phase:{userId}` | 現在のフェーズ（`1` / `2` / `3` / `4`） | 無期限 |
+| `attr_step:{userId}` | Phase 2の属性収集ステップ（`gender` / `job` / `age` / `marital` / `children` / `done`） | 無期限 |
 | `fp_url_queue:{fpUserId}` | FPごとのURL待ちキュー（JSON配列） | 無期限 |
 
 ---
@@ -87,8 +89,12 @@ Secrets（`wrangler secret put` で設定）:
 |---|---|
 | `client_line_user_id` | クライアントのLINE User ID |
 | `concern` | 悩み文章 |
-| `lifecycle_stage` | ライフステージ |
+| `gender` | 性別（Phase 2 genderステップで収集） |
+| `job_status` | 職業 |
 | `age_range` | 年代 |
+| `marital_status` | 婚姻状況 |
+| `children_count` | 子ども人数（既婚の場合） |
+| `lifecycle_stage` | ライフステージ（旧フロー互換） |
 | `matched_categories` | AIが分類した専門領域 |
 | `selected_fp_id` | マッチしたFPのID |
 | `scheduled_start/end` | 相談日時 |
@@ -159,14 +165,33 @@ Secrets（`wrangler secret put` で設定）:
 | `oauthStart` | `/oauth/start` → Google認証画面へリダイレクト |
 | `oauthCallback` | `/oauth/callback` → code→token交換→FP情報保存 |
 
-### クライアント相談フロー
+### クライアント相談フロー（新フェーズベース）
 
 | 関数 | 役割 |
 |---|---|
-| `startClient` | 相談開始・悩み入力誘導 |
-| `clientStep` | 悩み受付→ライフステージ選択へ |
-| `clientLifecycleTap` | ライフステージ選択→年代選択へ |
-| `clientAgeTap` | 年代選択→AI分析→FP検索→スロット表示 |
+| `handlePhase1` | Phase 1：悩みテキスト受信→`getHistory`取得→Claude Haikuで共感返答生成→DB保存→QR返信 |
+| `enterPhase2` | Phase 2入口：genderステップから開始（男性/女性/その他/答えたくない） |
+| `handlePhase2Text` | Phase 2：gender→job→age→marital→children の順に属性収集 |
+| `phase2GenderTap` | Phase 2 gender Postbackフォールバック |
+| `phase2JobTap` | Phase 2 job Postbackフォールバック |
+| `phase2AgeTap` | Phase 2 age Postbackフォールバック |
+| `phase2MaritalTap` | Phase 2 marital Postbackフォールバック |
+| `phase2ChildrenTap` | Phase 2 children Postbackフォールバック |
+| `enterPhase3` | Phase 3：属性サマリー＋FP紹介同意確認 |
+| `handlePhase3Text` | Phase 3：同意/拒否/リトライのテキスト処理 |
+| `phase3ConsentTap` / `phase3RetryTap` | Phase 3 Postback処理 |
+| `doFPMatch` | Phase 4：アクティブFP1件を選択してマッチング通知 |
+| `saveAttr` | 属性を `fp_gacha_sessions` にupsert |
+| `startClient` | KV切れ時フォールバック（Phase 1に誘導） |
+
+### クライアント相談フロー（旧フロー互換）
+
+| 関数 | 役割 |
+|---|---|
+| `clientLifecycleTap` | 旧 `lc` アクション → Phase 2にブリッジ |
+| `clientLifecycleDetailTap` | 旧 `lc_detail` アクション → Phase 2にブリッジ |
+| `clientAgeTap` | 旧 `age` アクション → Phase 3へ |
+| `clientConsentTap` | 旧 `fp_consent` アクション |
 | `clientSlotTap` | 日時選択→ガチャ抽選→GCal予約→結果表示 |
 
 ### Google Calendar
@@ -182,8 +207,11 @@ Secrets（`wrangler secret put` で設定）:
 
 | 関数 | 役割 |
 |---|---|
+| `generateChatResponse` | Claude Haikuで会話返答を生成（Phase 1で使用、systemPrompt＋会話履歴を渡す） |
 | `categorizeConcern` | 悩み文章をClaude Haikuで専門領域に分類（最大3つ） |
 | `findFPs` | ライフステージ＋専門領域でSupabaseからFPを絞り込み |
+| `getHistory` | conversationsテーブルから会話履歴を取得（user/assistant交互に整形） |
+| `saveMessage` | conversationsテーブルにメッセージを保存 |
 
 ### 通知・評価
 

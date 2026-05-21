@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPガチャ｜登録情報変更</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #07111f;
+      color: #fff;
+      min-height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #0f2460 0%, #1a4a7a 60%, #0d7a5f 100%);
+      padding: 52px 24px 72px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0; right: 0;
+      height: 52px;
+      background: #07111f;
+      clip-path: ellipse(55% 100% at 50% 100%);
+    }
+    .header-badge {
+      display: inline-block;
+      background: rgba(126,232,200,0.15);
+      color: #7ee8c8;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 6px 18px;
+      border-radius: 999px;
+      margin-bottom: 20px;
+      letter-spacing: 0.12em;
+      border: 1px solid rgba(126,232,200,0.3);
+    }
+    .header h1 {
+      font-size: clamp(1.5rem, 5vw, 2.2rem);
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 14px;
+      line-height: 1.25;
+    }
+    .header h1 em { font-style: normal; color: #7ee8c8; }
+    .header-sub {
+      font-size: 0.93rem;
+      color: rgba(255,255,255,0.72);
+      line-height: 1.85;
+    }
+
+    main {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    .notice-box {
+      background: rgba(255,200,80,0.08);
+      border: 1px solid rgba(255,200,80,0.3);
+      border-radius: 14px;
+      padding: 16px 20px;
+      font-size: 0.88rem;
+      color: rgba(255,220,120,0.9);
+      margin-bottom: 28px;
+      line-height: 1.75;
+    }
+
+    .error-msg {
+      background: rgba(255,80,80,0.12);
+      border: 1px solid rgba(255,80,80,0.35);
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 0.88rem;
+      color: #ff8888;
+      margin-bottom: 24px;
+      display: none;
+    }
+    .error-msg.show { display: block; }
+
+    .form-card {
+      background: rgba(26, 74, 122, 0.18);
+      border: 1px solid rgba(126,232,200,0.12);
+      border-radius: 24px;
+      padding: 40px 36px;
+      backdrop-filter: blur(10px);
+    }
+    @media (max-width: 480px) { .form-card { padding: 28px 20px; } }
+
+    .sec-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #7ee8c8;
+      margin-bottom: 6px;
+    }
+    .sec-title {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .sec-title small {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.45);
+      margin-top: 4px;
+    }
+    .form-divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 36px 0;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.88);
+      margin-bottom: 10px;
+    }
+    .field-label .badge-req {
+      display: inline-block;
+      background: #0d7a5f;
+      color: #fff;
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-left: 8px;
+      vertical-align: middle;
+      font-weight: 700;
+    }
+    .text-input {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 12px;
+      padding: 15px 18px;
+      font-size: 1rem;
+      font-family: 'Noto Sans JP', sans-serif;
+      color: #fff;
+      transition: border-color 0.2s, background 0.2s;
+      outline: none;
+    }
+    .text-input::placeholder { color: rgba(255,255,255,0.28); }
+    .text-input:focus {
+      border-color: #7ee8c8;
+      background: rgba(126,232,200,0.05);
+    }
+
+    .check-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      gap: 10px;
+    }
+    .check-item { position: relative; }
+    .check-item input[type="checkbox"] {
+      position: absolute; opacity: 0; width: 0; height: 0;
+    }
+    .check-item label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 12px;
+      padding: 13px 16px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.65);
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .check-item label::before {
+      content: '';
+      width: 18px; height: 18px;
+      border-radius: 5px;
+      border: 2px solid rgba(255,255,255,0.25);
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+    .check-item input:checked + label {
+      background: rgba(126,232,200,0.1);
+      border-color: #7ee8c8;
+      color: #7ee8c8;
+    }
+    .check-item input:checked + label::before {
+      background: #7ee8c8;
+      border-color: #7ee8c8;
+      content: '✓';
+      font-size: 0.75rem;
+      color: #0f2460;
+      font-weight: 900;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .family-group { display: flex; flex-direction: column; gap: 16px; }
+    .family-group-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.45);
+      margin-bottom: -4px;
+    }
+    .family-group-header::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    .submit-area { margin-top: 40px; }
+    .submit-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #7ee8c8, #4ecba0);
+      color: #0f2460;
+      border: none;
+      border-radius: 999px;
+      padding: 18px 24px;
+      font-size: 1.05rem;
+      font-weight: 900;
+      font-family: 'Noto Sans JP', sans-serif;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 8px 32px rgba(126,232,200,0.2);
+    }
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(126,232,200,0.3);
+    }
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .submit-note {
+      text-align: center;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.38);
+      margin-top: 14px;
+      line-height: 1.75;
+    }
+
+    footer {
+      background: #0f2460;
+      color: rgba(255,255,255,0.3);
+      text-align: center;
+      padding: 24px;
+      font-size: 0.82rem;
+    }
+
+    #invalidMsg {
+      display: none;
+      text-align: center;
+      padding: 60px 24px;
+    }
+    #invalidMsg.show { display: block; }
+    #invalidMsg h2 { color: #ff8888; font-size: 1.2rem; margin-bottom: 12px; }
+    #invalidMsg p { color: rgba(255,255,255,0.55); font-size: 0.9rem; }
+    #formWrap { display: none; }
+    #formWrap.show { display: block; }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-badge">FP PARTNER EDIT</div>
+  <h1>登録情報を<em>変更する</em></h1>
+  <p class="header-sub">変更したい項目を選択・入力して送信してください。</p>
+</header>
+
+<main>
+  <div id="invalidMsg">
+    <h2>リンクが無効か期限切れです</h2>
+    <p>LINEで「登録変更」と送信して、新しいリンクを取得してください。</p>
+  </div>
+
+  <div id="formWrap">
+    <div class="notice-box">
+      ⚠️ 名前・メールアドレス・電話番号の変更はお手数ですが管理者までご連絡ください。
+    </div>
+
+    <div id="errorMsg" class="error-msg"></div>
+
+    <div class="form-card">
+      <form id="editForm" method="POST" action="/fp/edit-submit" novalidate>
+        <input type="hidden" name="token" id="tokenField">
+
+        <!-- FP資格 -->
+        <p class="sec-label">STEP 1</p>
+        <p class="sec-title">FP資格</p>
+        <div>
+          <label class="field-label" for="fpQualification">
+            保有資格（または取得予定） <span class="badge-req">必須</span>
+          </label>
+          <select class="text-input" id="fpQualification" name="qualification" style="cursor:pointer;">
+            <option value="">選択してください</option>
+            <option value="CFP">CFP</option>
+            <option value="1級FP技能士">1級FP技能士</option>
+            <option value="AFP">AFP</option>
+            <option value="2級FP技能士">2級FP技能士</option>
+            <option value="3級FP技能士">3級FP技能士</option>
+            <option value="生命保険協会認定FP（生保大学全課程修了）">生命保険協会認定FP（生保大学全課程修了）</option>
+            <option value="3ヶ月以内に3級取得予定">3ヶ月以内に3級取得予定</option>
+            <option value="半年以内に2級・AFP取得予定">半年以内に2級・AFP取得予定</option>
+            <option value="1年以内に1級・CFP取得予定">1年以内に1級・CFP取得予定</option>
+          </select>
+        </div>
+
+        <hr class="form-divider">
+
+        <!-- 専門領域 -->
+        <p class="sec-label">STEP 2</p>
+        <p class="sec-title">
+          専門領域
+          <small>複数選択可 <span class="badge-req" style="font-size:0.68rem">1つ以上必須</span></small>
+        </p>
+        <div class="check-grid">
+          <div class="check-item">
+            <input type="checkbox" id="sp_ins" name="specialties" value="insurance">
+            <label for="sp_ins">🛡️ 保険</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_sav" name="specialties" value="savings">
+            <label for="sp_sav">💰 貯蓄</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_hh" name="specialties" value="household">
+            <label for="sp_hh">🏦 家計改善</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_cf" name="specialties" value="cashflow">
+            <label for="sp_cf">📊 CF表作成</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_ast" name="specialties" value="asset">
+            <label for="sp_ast">📈 資産運用</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_inv" name="specialties" value="investment">
+            <label for="sp_inv">💹 NISA・iDeCo</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_ret" name="specialties" value="retirement">
+            <label for="sp_ret">🌅 老後資金</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_edu" name="specialties" value="education">
+            <label for="sp_edu">🎓 教育費</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_inh" name="specialties" value="inheritance">
+            <label for="sp_inh">📜 相続</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_biz" name="specialties" value="biz_succ">
+            <label for="sp_biz">🏢 事業承継</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_re" name="specialties" value="real_estate">
+            <label for="sp_re">🏠 不動産</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_tax" name="specialties" value="tax">
+            <label for="sp_tax">💴 節税</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_txr" name="specialties" value="tax_return">
+            <label for="sp_txr">📋 税務・確定申告</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_frg" name="specialties" value="frugal">
+            <label for="sp_frg">✂️ 節約</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="sp_oth" name="specialties" value="other">
+            <label for="sp_oth">💬 その他</label>
+          </div>
+        </div>
+
+        <hr class="form-divider">
+
+        <!-- 対応年代 -->
+        <p class="sec-label">STEP 3</p>
+        <p class="sec-title">
+          対応年代
+          <small>複数選択可（未選択の場合は全世代対応とみなします）</small>
+        </p>
+        <div class="check-grid">
+          <div class="check-item">
+            <input type="checkbox" id="ag_20s" name="age_ranges" value="20s">
+            <label for="ag_20s">📗 20代</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="ag_30s" name="age_ranges" value="30s">
+            <label for="ag_30s">📘 30代</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="ag_40s" name="age_ranges" value="40s">
+            <label for="ag_40s">📙 40代</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="ag_50s" name="age_ranges" value="50s">
+            <label for="ag_50s">📕 50代</label>
+          </div>
+          <div class="check-item">
+            <input type="checkbox" id="ag_60p" name="age_ranges" value="60plus">
+            <label for="ag_60p">📒 60代以上</label>
+          </div>
+        </div>
+
+        <hr class="form-divider">
+
+        <!-- 家族構成 -->
+        <p class="sec-label">STEP 4</p>
+        <p class="sec-title">
+          得意な相談者属性（家族構成）
+          <small>複数選択可（未選択の場合は全属性対応とみなします）</small>
+        </p>
+        <div class="family-group">
+          <div>
+            <div class="family-group-header">独身</div>
+            <div class="check-grid" style="margin-top:10px">
+              <div class="check-item">
+                <input type="checkbox" id="fs_smy" name="family_stages" value="single_marry_yes">
+                <label for="fs_smy">💍 結婚予定あり</label>
+              </div>
+              <div class="check-item">
+                <input type="checkbox" id="fs_smn" name="family_stages" value="single_marry_no">
+                <label for="fs_smn">🙋 結婚予定なし</label>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="family-group-header">既婚</div>
+            <div class="check-grid" style="margin-top:10px">
+              <div class="check-item">
+                <input type="checkbox" id="fs_mnc" name="family_stages" value="married_no_child">
+                <label for="fs_mnc">👫 既婚・子なし</label>
+              </div>
+              <div class="check-item">
+                <input type="checkbox" id="fs_mch" name="family_stages" value="married_child_home">
+                <label for="fs_mch">👨‍👩‍👧 子あり（同居）</label>
+              </div>
+              <div class="check-item">
+                <input type="checkbox" id="fs_mco" name="family_stages" value="married_child_out">
+                <label for="fs_mco">🏠 子あり（独立済）</label>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="family-group-header">その他</div>
+            <div class="check-grid" style="margin-top:10px">
+              <div class="check-item">
+                <input type="checkbox" id="fs_dc" name="family_stages" value="divorced_child">
+                <label for="fs_dc">👩‍👧 離別・子あり</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBMIT -->
+        <div class="submit-area">
+          <button type="submit" class="submit-btn" id="submitBtn">
+            変更を保存する
+          </button>
+          <p class="submit-note">送信後、LINEアプリに戻ってください。</p>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</main>
+
+<footer>
+  &copy; 2025 FPガチャ. All rights reserved.
+</footer>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const token  = params.get('token');
+  const errEl  = document.getElementById('errorMsg');
+
+  if (!token) {
+    document.getElementById('invalidMsg').classList.add('show');
+  } else {
+    document.getElementById('tokenField').value = token;
+    document.getElementById('formWrap').classList.add('show');
+  }
+
+  document.getElementById('editForm').addEventListener('submit', function(e) {
+    errEl.classList.remove('show');
+    const qualification = document.getElementById('fpQualification').value;
+    const specialties   = document.querySelectorAll('input[name="specialties"]:checked');
+
+    if (!qualification) {
+      e.preventDefault();
+      errEl.textContent = 'FP資格を選択してください。';
+      errEl.classList.add('show');
+      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (!specialties.length) {
+      e.preventDefault();
+      errEl.textContent = '専門領域を1つ以上選択してください。';
+      errEl.classList.add('show');
+      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('submitBtn').textContent = '処理中…';
+  });
+</script>
+</body>
+</html>

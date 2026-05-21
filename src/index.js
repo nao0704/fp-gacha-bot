@@ -1,7 +1,7 @@
 // ════════════════════════════════════════════════════════
 //  FP ガチャ LINE Bot — Cloudflare Workers
 // ════════════════════════════════════════════════════════
-import { SYSTEM_COMMON, SYSTEM_PHASE1, SYSTEM_PHASE2, SYSTEM_PHASE3 } from './prompts.js';
+import { SYSTEM_COMMON, SYSTEM_PHASE1, SYSTEM_PHASE2, SYSTEM_PHASE3, SYSTEM_PHASE4 } from './prompts.js';
 
 const JST             = 9 * 60 * 60 * 1000;
 const SLOT_MS         = 3_600_000; // 1時間
@@ -45,7 +45,7 @@ const SPECIALTIES = [
   { key: 'insurance',   label: '保険・医療保障' },
   { key: 'savings',     label: '貯蓄' },
   { key: 'household',   label: '家計・収支改善' },
-  { key: 'cashflow',    label: 'キャッシュフロー表作成' },
+  { key: 'cashflow',    label: 'CF表・ライフイベント表作成' },
   { key: 'asset',       label: '資産形成' },
   { key: 'investment',  label: '投資（NISA・iDeCo）' },
   { key: 'retirement',  label: '老後資金' },
@@ -54,6 +54,7 @@ const SPECIALTIES = [
   { key: 'biz_succ',    label: '事業承継' },
   { key: 'real_estate', label: '不動産' },
   { key: 'tax',         label: '節税' },
+  { key: 'tax_return',  label: '税務・確定申告' },
   { key: 'frugal',      label: '節約' },
   { key: 'other',       label: 'その他' },
 ];
@@ -81,6 +82,12 @@ export default {
     }
     if (url.pathname === '/fp/register-submit' && request.method === 'POST') {
       return handleFPWebRegStart(request, env);
+    }
+    if (url.pathname === '/fp/edit' && request.method === 'GET') {
+      return env.ASSETS.fetch(new Request(new URL('/fp/edit.html', url)));
+    }
+    if (url.pathname === '/fp/edit-submit' && request.method === 'POST') {
+      return handleFPEditSubmit(request, env);
     }
 
     // リマインダー設定エンドポイント
@@ -118,6 +125,7 @@ export default {
     if (event.cron === '0 * * * *') {
       await processRatingJobs(env);
       await processReminders(env);
+      await processNoShowCheck(env);
     }
   },
 };
@@ -357,6 +365,10 @@ async function onMessage(ev, env) {
     await handlePhase3Text(uid, text, rt, env);
     return;
   }
+  if (phase === '4') {
+    await handlePhase4(uid, text, rt, env);
+    return;
+  }
 
   // フェーズ不明 → Phase1として扱う
   await handlePhase1(uid, text, rt, env);
@@ -379,6 +391,7 @@ async function onPostback(ev, env) {
   if (act === 'fp_result')     return saveFPResult(uid, rt, p, env);
   if (act === 'client_result') return saveClientResult(uid, rt, p, env);
   // 新フロー
+  if (act === 'p2_gender')     return phase2GenderTap(uid, rt, p, env);
   if (act === 'p2_job')        return phase2JobTap(uid, rt, p, env);
   if (act === 'p2_age')        return phase2AgeTap(uid, rt, p, env);
   if (act === 'p2_marital')    return phase2MaritalTap(uid, rt, p, env);
@@ -432,7 +445,13 @@ async function fpRegStep(uid, text, rt, state, env) {
       await kv(env).delete(`fp_reg:${uid}`);
       await reply(rt,
         `連携が完了しました ✅\nこれでFPとして活動できます！\n\n` +
-        `「一時停止」：新規受付を停止\n「再開」：受付を再開`, env);
+        `「一時停止」：新規受付を停止\n「再開」：受付を再開\n\n` +
+        `登録情報を変更したい場合は「登録変更」とLINEに送ってください。30分以内に変更対応してください。`, env);
+      await push(uid,
+        `相談者との日程調整のため、Googleカレンダーを連携してください。\n\n` +
+        `${env.WORKER_URL}/oauth/start?state=${uid}\n\n` +
+        `⚠️ 開いた際に「安全でないページ」と表示される場合は、「詳細」→「（安全ではないページ）に移動」をタップして続行してください。\n\n` +
+        `※ この連携をしないと日程調整フローが動作しません`, env);
       break;
     }
     default:
@@ -480,6 +499,8 @@ async function handleFPWebRegStart(request, env) {
   const data = await request.formData();
   const name          = (data.get('name') || '').trim();
   const email         = (data.get('email') || '').trim().toLowerCase();
+  const phone         = (data.get('phone') || '').trim();
+  const qualification = (data.get('qualification') || '').trim();
   const specialties   = data.getAll('specialties');
   const formats       = data.getAll('formats');
   const age_ranges    = data.getAll('age_ranges');
@@ -487,8 +508,9 @@ async function handleFPWebRegStart(request, env) {
 
   if (!name)  return Response.redirect(`${env.WORKER_URL}/fp/register?error=name`, 302);
   if (!email || !email.includes('@')) return Response.redirect(`${env.WORKER_URL}/fp/register?error=email`, 302);
+  if (!phone || phone.replace(/[^0-9]/g, '').length < 10) return Response.redirect(`${env.WORKER_URL}/fp/register?error=phone`, 302);
+  if (!qualification) return Response.redirect(`${env.WORKER_URL}/fp/register?error=qualification`, 302);
   if (!specialties.length) return Response.redirect(`${env.WORKER_URL}/fp/register?error=specialty`, 302);
-  if (!formats.length)     return Response.redirect(`${env.WORKER_URL}/fp/register?error=format`, 302);
 
   const legacyStages = [...new Set(family_stages.map(k => FAMILY_STAGE_LEGACY[k]).filter(Boolean))];
 
@@ -499,10 +521,11 @@ async function handleFPWebRegStart(request, env) {
     body: JSON.stringify({
       name,
       email,
+      phone,
+      qualification,
       line_user_id:     null,
       lifecycle_stages: legacyStages.length ? legacyStages : ['single', 'family_child', 'family_nochild', 'senior'],
       specialties,
-      formats,
       age_ranges,
       family_stages,
       active: false,
@@ -556,9 +579,69 @@ async function handleFPWebRegStart(request, env) {
 }
 
 // ══════════════════════════════════════════════════════
+//  FP Edit（登録変更）
+// ══════════════════════════════════════════════════════
+async function handleFPEditSubmit(request, env) {
+  let data;
+  try { data = await request.formData(); } catch { return new Response('Bad Request', { status: 400 }); }
+
+  const token         = (data.get('token') || '').trim();
+  const specialties   = data.getAll('specialties');
+  const age_ranges    = data.getAll('age_ranges');
+  const family_stages = data.getAll('family_stages');
+  const qualification = (data.get('qualification') || '').trim();
+
+  if (!token) return new Response('リンクが無効か期限切れです', { status: 400, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+
+  const uid = await kv(env).get(`fp_edit_token:${token}`);
+  if (!uid) return new Response('リンクが無効か期限切れです', { status: 400, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+
+  const legacyStages = [...new Set(family_stages.map(k => FAMILY_STAGE_LEGACY[k]).filter(Boolean))];
+
+  await fetch(`${env.SUPABASE_URL}/rest/v1/fp_fps?line_user_id=eq.${encodeURIComponent(uid)}`, {
+    method: 'PATCH',
+    headers: sbHeaders(env),
+    body: JSON.stringify({
+      ...(specialties.length   && { specialties }),
+      ...(age_ranges.length    && { age_ranges }),
+      ...(family_stages.length && { family_stages, lifecycle_stages: legacyStages.length ? legacyStages : ['single', 'family_child', 'family_nochild', 'senior'] }),
+      ...(qualification        && { qualification }),
+    }),
+  });
+
+  await kv(env).delete(`fp_edit_token:${token}`);
+
+  return new Response(`
+    <!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>変更完了｜FPガチャ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+      body{font-family:'Noto Sans JP',sans-serif;background:#07111f;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+      .card{background:rgba(26,74,122,0.25);border:1px solid rgba(126,232,200,0.2);border-radius:24px;padding:48px 36px;max-width:480px;width:100%}
+      .icon{font-size:3.5rem;margin-bottom:20px}
+      h1{font-size:1.5rem;font-weight:900;color:#7ee8c8;margin-bottom:16px}
+      p{font-size:0.95rem;line-height:1.85;color:rgba(255,255,255,0.78)}
+      footer{margin-top:48px;font-size:0.8rem;color:rgba(255,255,255,0.25)}
+    </style></head>
+    <body>
+      <div class="card">
+        <div class="icon">✅</div>
+        <h1>変更が完了しました</h1>
+        <p>LINEアプリに戻ってください。</p>
+      </div>
+      <footer>&copy; 2025 FPガチャ</footer>
+    </body></html>
+  `, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+}
+
+// ══════════════════════════════════════════════════════
 //  Google OAuth
 // ══════════════════════════════════════════════════════
 async function oauthStart(request, env) {
+  if (!env.GOOGLE_OAUTH_CLIENT_ID) {
+    return new Response('Google OAuth未設定。Cloudflare Workersのシークレットを確認してください。', { status: 500 });
+  }
   const uid = new URL(request.url).searchParams.get('state');
   if (!uid) return new Response('Missing state', { status: 400 });
 
@@ -603,19 +686,15 @@ async function oauthCallback(request, env) {
   const calData  = await calRes.json();
   const calId    = calData.id || 'primary';
 
-  // FP登録ステートから情報取得 → Supabaseに保存
-  const raw   = await kv(env).get(`fp_reg:${uid}`);
-  const state = raw ? JSON.parse(raw) : {};
-
-  await saveFP(uid, {
-    name:                 state.name || 'FP',
-    lifecycle_stages:     state.lifecycle_stages || [],
-    specialties:          state.specialties || [],
-    google_calendar_id:   calId,
-    google_refresh_token: tokens.refresh_token,
-    age_ranges:           state.age_ranges || [],
-    family_stages:        state.family_stages || [],
-  }, env);
+  await fetch(`${env.SUPABASE_URL}/rest/v1/fp_fps?line_user_id=eq.${uid}`, {
+    method: 'PATCH',
+    headers: sbHeaders(env),
+    body: JSON.stringify({
+      google_calendar_id:   calId,
+      google_refresh_token: tokens.refresh_token,
+      active: true,
+    }),
+  });
 
   await kv(env).delete(`fp_reg:${uid}`);
 
@@ -687,31 +766,42 @@ async function handlePhase1(uid, text, rt, env) {
     return;
   }
 
-  // 悩みをDBに保存（phase=1 として）
+  // 会話履歴を取得（現在のメッセージ保存前に取得してAPIに渡す）
+  const history = await getHistory(uid, env);
+
+  // ユーザーメッセージをDBに保存（phase=1 として）
   await fetch(`${env.SUPABASE_URL}/rest/v1/conversations`, {
     method: 'POST',
     headers: sbHeaders(env),
-    body: JSON.stringify({ user_line_id: uid, role: 'user', content: text, phase: 1 }),
+    body: JSON.stringify({ line_user_id: uid, role: 'user', content: text, phase: 1 }),
   });
 
-  // 共感返答 + Quick Replyボタン2つ
-  const empathy = getEmpathy(text);
-  await replyQR(rt, `${empathy}\n\n他にも気になっていることはありますか？`, PHASE1_QR, env);
+  // アラートキーワード検知
+  const ALERT_KEYWORDS = ['契約', 'クソ', '詐欺', '詐欺師', '最悪', '返金', 'ひどい', '訴える'];
+  const alertWord = ALERT_KEYWORDS.find(kw => text.includes(kw));
+  if (alertWord) {
+    await push(env.ADMIN_LINE_ID, `⚠️ 重要ワード検知(Phase1)\nキーワード：「${alertWord}」\nユーザーID：${uid}\n内容：${text}`, env);
+  }
+
+  // AIで共感返答を生成
+  const systemPrompt = `${SYSTEM_COMMON}\n\n${SYSTEM_PHASE1}`;
+  const aiResponse = await generateChatResponse(text, history, systemPrompt, env);
+
+  // AI返答をDBに保存してからQuick Replyで返信
+  await saveMessage(uid, 'assistant', aiResponse, env);
+  await replyQR(rt, aiResponse, PHASE1_QR, env);
 }
 
 // ── Phase 2: 属性収集（Quick Reply） ─────────────────
 
 async function enterPhase2(uid, rt, env) {
   const bridge = 'ありがとうございます。そうしましたら、あなたにぴったりのFPを探すお手伝いをするのに、もう少し質問させてください。';
-  const jobQuestion = 'あなたの今のお仕事は以下のどれに当てはまりますか？';
-  const jobQR = makeQR([
-    '会社員・公務員','個人事業主','フリーランス','主婦・主夫','学生','無職・休職中','その他','答えたくない',
-  ], 'p2_job', 'job');
+  const genderQuestion = 'あなたの性別を教えていただけますか？';
+  const genderQR = makeQR(['男性', '女性', 'その他', '答えたくない'], 'p2_gender', 'gender');
 
-  await kv(env).put(`attr_step:${uid}`, 'job');
-  // bridgeメッセージをreplyで送り、jobをpushで送る
+  await kv(env).put(`attr_step:${uid}`, 'gender');
   await reply(rt, bridge, env);
-  await replyQR(null, jobQuestion, jobQR, env, uid);
+  await replyQR(null, genderQuestion, genderQR, env, uid);
 }
 
 function makeQR(labels, action, param) {
@@ -725,6 +815,13 @@ function makeQR(labels, action, param) {
 async function handlePhase2Text(uid, text, rt, env) {
   const step = await kv(env).get(`attr_step:${uid}`);
 
+  if (step === 'gender') {
+    await saveAttr(uid, { gender: text }, env);
+    await kv(env).put(`attr_step:${uid}`, 'job');
+    const jobQR = makeQR(['会社員・公務員','個人事業主','フリーランス','主婦・主夫','学生','無職・休職中','その他','答えたくない'], 'p2_job', 'job');
+    await replyQR(rt, 'ありがとうございます。あなたの今のお仕事は以下のどれに当てはまりますか？', jobQR, env);
+    return;
+  }
   if (step === 'job') {
     await saveAttr(uid, { job_status: text }, env);
     await kv(env).put(`attr_step:${uid}`, 'age');
@@ -760,13 +857,14 @@ async function handlePhase2Text(uid, text, rt, env) {
     return;
   }
 
-  // stepが不明 → jobから再開
-  await kv(env).put(`attr_step:${uid}`, 'job');
-  const jobQR = makeQR(['会社員・公務員','個人事業主','フリーランス','主婦・主夫','学生','無職・休職中','その他','答えたくない'], 'p2_job', 'job');
-  await replyQR(rt, 'あなたの今のお仕事は以下のどれに当てはまりますか？', jobQR, env);
+  // stepが不明 → genderから再開
+  await kv(env).put(`attr_step:${uid}`, 'gender');
+  const genderQR = makeQR(['男性', '女性', 'その他', '答えたくない'], 'p2_gender', 'gender');
+  await replyQR(rt, 'あなたの性別を教えていただけますか？', genderQR, env);
 }
 
 // Phase 2 postbackハンドラ（フォールバック、実際はtextが届く）
+async function phase2GenderTap(uid, rt, p, env) { await handlePhase2Text(uid, p.get('val') || '', rt, env); }
 async function phase2JobTap(uid, rt, p, env) { await handlePhase2Text(uid, p.get('val') || '', rt, env); }
 async function phase2AgeTap(uid, rt, p, env) { await handlePhase2Text(uid, p.get('val') || '', rt, env); }
 async function phase2MaritalTap(uid, rt, p, env) { await handlePhase2Text(uid, p.get('val') || '', rt, env); }
@@ -777,7 +875,7 @@ async function phase2ChildrenTap(uid, rt, p, env) { await handlePhase2Text(uid, 
 async function enterPhase3(uid, rt, env) {
   // セッションから属性を取得
   const sessRes = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?uid=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=*`,
+    `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?client_line_user_id=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=*`,
     { headers: sbHeaders(env) }
   );
   const sessions = await sessRes.json();
@@ -785,7 +883,7 @@ async function enterPhase3(uid, rt, env) {
 
   // 悩みリストを取得
   const worriesRes = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/conversations?user_line_id=eq.${encodeURIComponent(uid)}&role=eq.user&phase=eq.1&order=created_at.asc&select=content`,
+    `${env.SUPABASE_URL}/rest/v1/conversations?line_user_id=eq.${encodeURIComponent(uid)}&role=eq.user&order=created_at.asc&select=content`,
     { headers: sbHeaders(env) }
   );
   const worryRows = await worriesRes.json();
@@ -797,26 +895,16 @@ async function enterPhase3(uid, rt, env) {
   const children  = sess.children_count;
   const childInfo = marital === '既婚' && children ? `・子ども${children}` : '';
 
-  // 悩みサマリー（ユーザーが実際に送ったテキストのみ使用、カルーセル文言は使わない）
-  let worrySummary;
-  if (worries.length === 0) {
-    worrySummary = 'お金に関することへのお悩み';
-  } else if (worries.length === 1) {
-    worrySummary = `「${worries[0]}」`;
-  } else {
-    const allButLast = worries.slice(0, -1).map(w => `「${w}」`).join('、');
-    worrySummary = `${allButLast}、そして「${worries[worries.length - 1]}」`;
-  }
-
   // 状況テキスト（名前は使わず属性のみ）
   const profileParts = [job, ageRange, marital + childInfo].filter(Boolean);
   const profileText = profileParts.length
     ? `${profileParts.join('で、')}なんですね。`
     : 'ありがとうございます。';
 
+  const worryLines = worries.length ? worries.map(w => `・${w}`).join('\n') : '・お金のこと全般';
+
   const summary =
-    `${profileText}\n\n` +
-    `${worrySummary}についてお悩みなんですね。\n\n` +
+    `${profileText}\n\nあなたが伝えてくださったことは、\n${worryLines}\n\n` +
     'こうしたお悩みは、FPに相談することで改善できる可能性がとても高いです。\n\n' +
     'あなたの状況にぴったりのFPをご紹介できます。お話だけでも聞いてみませんか？もちろん無料です。';
 
@@ -855,6 +943,213 @@ async function handlePhase3Text(uid, text, rt, env) {
   await replyQR(rt, 'ご紹介しましょうか？いかがでしょうか？', consentQR, env);
 }
 
+// ── Phase 4: 面談確定後サポート ──────────────────────────
+
+async function handlePhase4(uid, text, rt, env) {
+  const PHASE4_QR = [
+    { type: 'action', action: { type: 'message', label: '日程確認', text: '日程確認' } },
+    { type: 'action', action: { type: 'message', label: '日程変更', text: '日程変更' } },
+    { type: 'action', action: { type: 'message', label: 'キャンセル', text: 'キャンセル' } },
+  ];
+
+  if (text === '日程確認') {
+    const sessRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?client_line_user_id=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=*`,
+      { headers: sbHeaders(env) }
+    );
+    const sessions = await sessRes.json();
+    const sess = Array.isArray(sessions) && sessions.length ? sessions[0] : null;
+    if (sess && sess.scheduled_start) {
+      const { m, d, wd, h } = jstParts(sess.scheduled_start);
+      const meetUrl = sess.meet_url || '（URLは別途お送りします）';
+      await replyQR(rt, `📅 面談日時：${m}月${d}日(${wd}) ${h}:00〜\n\n🔗 Google Meet：${meetUrl}\n\nご不明な点はいつでもどうぞ😊`, PHASE4_QR, env);
+    } else {
+      await replyQR(rt, '日程情報が見つかりませんでした。', PHASE4_QR, env);
+    }
+    return;
+  }
+
+  if (text === '日程変更') {
+    const sessRes2 = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?client_line_user_id=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=*`,
+      { headers: sbHeaders(env) }
+    );
+    const sess2 = (await sessRes2.json())[0] ?? null;
+    if (!sess2?.selected_fp_id) {
+      await replyQR(rt, '日程情報が見つかりませんでした。', PHASE4_QR, env);
+      return;
+    }
+    const fp2 = await getFPById(sess2.selected_fp_id, env);
+    if (fp2?.google_refresh_token) {
+      const slots2 = await aggregateSlots([fp2], env);
+      if (slots2.length) {
+        await kv(env).put(`client:${uid}`, JSON.stringify({ slots: slots2, fp_ids: [fp2.id], session_id: sess2.id }));
+        await reply(rt, '新しい日程をお選びください 📅', env);
+        await pushFlex(uid, slotFlex(slots2, 1), env);
+      } else {
+        await replyQR(rt, '現在空き枠がありません。FPに連絡します 🌿', PHASE4_QR, env);
+        if (fp2.line_user_id) await push(fp2.line_user_id, `📅 日程変更リクエスト\n相談者ID：${uid}\n空き枠がないため、新しい日程の調整をお願いします。`, env);
+      }
+    } else {
+      await replyQR(rt, '現在空き枠がありません。FPに連絡します 🌿', PHASE4_QR, env);
+      if (fp2?.line_user_id) await push(fp2.line_user_id, `📅 日程変更リクエスト\n相談者ID：${uid}\n日程変更を希望されています。新しい日程をご連絡ください。`, env);
+    }
+    return;
+  }
+
+  if (text === 'キャンセル') {
+    const cancelQR = [
+      { type: 'action', action: { type: 'message', label: 'はい、キャンセルします', text: 'キャンセル確定' } },
+      { type: 'action', action: { type: 'message', label: 'やっぱりやめます', text: 'キャンセルしない' } },
+    ];
+    await replyQR(rt, '面談をキャンセルしてよろしいですか？\nキャンセル後は最初からやり直しになります。', cancelQR, env);
+    return;
+  }
+
+  if (text === 'キャンセル確定') {
+    const sessRes3 = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?client_line_user_id=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=*`,
+      { headers: sbHeaders(env) }
+    );
+    const sess3 = (await sessRes3.json())[0] ?? null;
+    if (sess3) {
+      const fp3 = sess3.selected_fp_id ? await getFPById(sess3.selected_fp_id, env) : null;
+      // Googleカレンダーのイベント削除
+      if (fp3?.google_calendar_id && fp3.google_refresh_token && sess3.scheduled_start) {
+        try {
+          const tok3 = await refreshToken(fp3.google_refresh_token, env);
+          const startMs3 = +new Date(sess3.scheduled_start);
+          const evRes = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(fp3.google_calendar_id)}/events?timeMin=${encodeURIComponent(new Date(startMs3).toISOString())}&timeMax=${encodeURIComponent(new Date(startMs3 + SLOT_MS).toISOString())}&singleEvents=true`,
+            { headers: { Authorization: `Bearer ${tok3}` } }
+          );
+          const evData = await evRes.json();
+          const targetEv = evData.items?.find(e => e.summary === 'FPガチャ 個別相談');
+          if (targetEv?.id) {
+            await fetch(
+              `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(fp3.google_calendar_id)}/events/${targetEv.id}`,
+              { method: 'DELETE', headers: { Authorization: `Bearer ${tok3}` } }
+            );
+          }
+        } catch (e) { console.error('[cancel] calendar delete error', e); }
+      }
+      // FPへ通知
+      if (fp3?.line_user_id && sess3.scheduled_start) {
+        const { m, d, wd, h } = jstParts(sess3.scheduled_start);
+        await push(fp3.line_user_id, `相談者がキャンセルしました。\n日時：${m}月${d}日(${wd}) ${h}:00〜`, env);
+      }
+      if (sess3.id) await updateSession(sess3.id, { status: 'cancelled' }, env);
+    }
+    await kv(env).put(`phase:${uid}`, '1');
+    await reply(rt, 'キャンセルを受け付けました。またいつでもご相談ください😊', env);
+    await push(uid, WELCOME_MSG, env);
+    return;
+  }
+
+  if (text === 'キャンセルしない') {
+    await replyQR(rt, 'そのままお待ちください😊 何かあればいつでもどうぞ。', PHASE4_QR, env);
+    return;
+  }
+
+  // FPが来ない報告
+  if (text.startsWith('FPが来ない_')) {
+    const sessionId = text.replace('FPが来ない_', '');
+    const sessRes4 = await fetch(`${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?id=eq.${sessionId}&select=*`, { headers: sbHeaders(env) });
+    const sess4 = (await sessRes4.json())[0] ?? null;
+    if (!sess4) return;
+
+    await push(env.ADMIN_LINE_ID, `🚨 FPノーショー報告\nセッションID：${sessionId}\nFP LINE ID：${sess4.fp_line_user_id}\n相談者ID：${uid}`, env);
+
+    const fpRes4 = await fetch(`${env.SUPABASE_URL}/rest/v1/fp_fps?line_user_id=eq.${sess4.fp_line_user_id}&select=*`, { headers: sbHeaders(env) });
+    const fp4 = (await fpRes4.json())[0] ?? null;
+    if (fp4) {
+      const newCount = (fp4.no_show_count || 0) + 1;
+      const shouldBan = newCount >= 2;
+      await fetch(`${env.SUPABASE_URL}/rest/v1/fp_fps?line_user_id=eq.${sess4.fp_line_user_id}`, {
+        method: 'PATCH', headers: sbHeaders(env),
+        body: JSON.stringify({
+          no_show_count: newCount,
+          active: shouldBan ? false : fp4.active,
+          banned: shouldBan,
+          banned_reason: shouldBan ? '2回連続ノーショーによる自動バン' : null,
+        }),
+      });
+      if (shouldBan) {
+        await push(env.ADMIN_LINE_ID, `🚫 FP自動バン実行\n${fp4.name}（${sess4.fp_line_user_id}）\n2回連続ノーショーのため自動バンしました。`, env);
+        await push(uid, `大変申し訳ございません。担当FPの対応に問題があったため、別のFPをご紹介いたします。\n改めて最適なFPをお探しします。`, env);
+        await kv(env).put(`phase:${uid}`, '1');
+        await push(uid, WELCOME_MSG, env);
+        return;
+      }
+    }
+
+    await fetch(`${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?id=eq.${sessionId}`, {
+      method: 'PATCH', headers: sbHeaders(env),
+      body: JSON.stringify({ status: 'fp_noshow' }),
+    });
+
+    const rematchQR = [
+      { type: 'action', action: { type: 'message', label: '別のFPに繋いでほしい', text: '別FP希望' } },
+      { type: 'action', action: { type: 'message', label: '今日は結構です', text: '再マッチング不要' } },
+    ];
+    await replyQR(rt, `大変申し訳ございません😔\n担当FPが参加できない状況のようです。\n別のFPをご紹介することも可能ですが、いかがでしょうか？`, rematchQR, env);
+    return;
+  }
+
+  // 面談中報告
+  if (text.startsWith('面談中_')) {
+    await reply(rt, '面談をお楽しみください😊\n終了後にまたご連絡します。', env);
+    return;
+  }
+
+  // 別FP希望
+  if (text === '別FP希望') {
+    const sessRes5 = await fetch(`${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?client_line_user_id=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=*`, { headers: sbHeaders(env) });
+    const sess5 = (await sessRes5.json())[0] ?? null;
+    const excludeFpId = sess5?.selected_fp_id;
+    const allFpsRes = await fetch(`${env.SUPABASE_URL}/rest/v1/fp_fps?active=eq.true&select=*`, { headers: sbHeaders(env) });
+    const allFps = await allFpsRes.json();
+    const candidates = Array.isArray(allFps) ? allFps.filter(f => f.id !== excludeFpId && f.google_refresh_token) : [];
+    if (!candidates.length) {
+      await reply(rt, '現在対応可能な別のFPがおりません。後日改めてご連絡いたします。大変申し訳ございません😔', env);
+      await push(env.ADMIN_LINE_ID, `⚠️ 再マッチング対象FPなし\n相談者ID：${uid}`, env);
+      return;
+    }
+    const newFp5 = candidates[Math.floor(Math.random() * candidates.length)];
+    const slots5 = await aggregateSlots([newFp5], env);
+    if (slots5.length) {
+      await kv(env).put(`client:${uid}`, JSON.stringify({ slots: slots5, fp_ids: [newFp5.id], session_id: sess5?.id }));
+      await reply(rt, '新しいFPの空き枠をご確認ください 📅', env);
+      await pushFlex(uid, slotFlex(slots5, 1), env);
+    } else {
+      await reply(rt, '現在空き枠がございません。後日改めてご案内いたします。', env);
+    }
+    return;
+  }
+
+  // 再マッチング不要
+  if (text === '再マッチング不要') {
+    await kv(env).put(`phase:${uid}`, '1');
+    await reply(rt, '承知しました。またいつでもご相談ください😊', env);
+    return;
+  }
+
+  // アラートキーワード検知
+  const ALERT_KEYWORDS = ['契約', 'クソ', '詐欺', '詐欺師', '最悪', '返金', 'ひどい', '訴える'];
+  const matched = ALERT_KEYWORDS.find(kw => text.includes(kw));
+  if (matched) {
+    await push(env.ADMIN_LINE_ID,
+      `⚠️ 重要ワード検知\nキーワード：「${matched}」\nユーザーID：${uid}\n内容：${text}`, env);
+  }
+
+  // AI応答
+  const history = await getHistory(uid, env);
+  const systemPrompt = `${SYSTEM_COMMON}\n\n${SYSTEM_PHASE4}`;
+  const aiResponse = await generateChatResponse(text, history, systemPrompt, env);
+  await saveMessage(uid, 'assistant', aiResponse, env);
+  await replyQR(rt, aiResponse, PHASE4_QR, env);
+}
+
 async function phase3ConsentTap(uid, rt, p, env) {
   const val = p.get('val');
   if (val === 'yes') {
@@ -885,17 +1180,9 @@ async function phase3RetryTap(uid, rt, p, env) {
 async function doFPMatch(uid, rt, env) {
   await reply(rt, '最適なFPを探しています... 🔍', env);
 
-  // アクティブなFPを1件取得
-  const fpRes = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/fp_fps?active=eq.true&limit=1&select=*`,
-    { headers: sbHeaders(env) }
-  );
-  const fps = await fpRes.json();
-  const fp  = Array.isArray(fps) && fps.length ? fps[0] : null;
-
   // セッション属性を取得
   const sessRes = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?uid=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=*`,
+    `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?client_line_user_id=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=*`,
     { headers: sbHeaders(env) }
   );
   const sessions = await sessRes.json();
@@ -903,42 +1190,97 @@ async function doFPMatch(uid, rt, env) {
 
   // 悩みリスト取得
   const worriesRes = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/conversations?user_line_id=eq.${encodeURIComponent(uid)}&role=eq.user&phase=eq.1&order=created_at.asc&select=content`,
+    `${env.SUPABASE_URL}/rest/v1/conversations?line_user_id=eq.${encodeURIComponent(uid)}&role=eq.user&order=created_at.asc&select=content`,
     { headers: sbHeaders(env) }
   );
   const worryRows = await worriesRes.json();
   const worries = Array.isArray(worryRows) ? worryRows.map(r => r.content) : [];
 
-  const ageRange  = sess.age_range      || '不明';
-  const job       = sess.job_status     || '不明';
-  const marital   = sess.marital_status || '不明';
-  const children  = sess.children_count;
-  const childInfo = marital === '既婚' && children ? `（子ども${children}）` : '';
-  const worryLines = worries.map(w => `・${w}`).join('\n');
+  const ageRange   = sess.age_range      || '不明';
+  const job        = sess.job_status     || '不明';
+  const marital    = sess.marital_status || '不明';
+  const children   = sess.children_count;
+  const childInfo  = marital === '既婚' && children ? `（子ども${children}）` : '';
+  const worryLines = worries.length ? worries.map(w => `・${w}`).join('\n') : '・お金のこと全般';
 
-  if (fp && fp.line_user_id) {
-    // FPへのプッシュ通知
-    const fpMsg =
-      '新規相談者のご紹介です 📋\n\n' +
-      `お名前（匿名）：相談者さん\n` +
-      `年代：${ageRange}\n` +
-      `職業：${job}\n` +
-      `家族構成：${marital}${childInfo}\n` +
-      `お悩み：\n${worryLines}\n\n` +
-      '相談日時：調整中\n連絡方法：LINEにて';
-    await push(fp.line_user_id, fpMsg, env);
+  // age_range → findFPs用キーに変換
+  const ageKeyMap = { '20代': '20s', '30代': '30s', '40代': '40s', '50代': '50s', '60代以上': '60plus' };
+  const ageKey = ageKeyMap[sess.age_range] || '';
 
-    // セッション更新
-    if (sess.id) {
-      await updateSession(sess.id, { matched: true, selected_fp_id: fp.id, fp_line_user_id: fp.line_user_id }, env);
+  // marital_status + children_count → lifecycle + familyDetail
+  const hasChildren = children && !['子なし', '答えたくない'].includes(children);
+  let lifecycle = 'single', familyDetail = null;
+  if (marital === '既婚') {
+    if (hasChildren) {
+      lifecycle = 'family_child'; familyDetail = 'married_child_home';
+    } else {
+      lifecycle = 'family_nochild'; familyDetail = 'married_no_child';
     }
+  } else if (marital === '離別・死別' && hasChildren) {
+    lifecycle = 'family_child'; familyDetail = 'divorced_child';
   }
 
-  // ユーザーへのマッチング完了通知
-  await push(uid,
-    'マッチングしました！担当のFPから近日中にLINEでご連絡いたします。\n\nそれまでの間に何か気になることがあれば、いつでもご連絡ください。',
-    env
-  );
+  // 悩みから専門領域を分類
+  const categories = worries.length
+    ? await categorizeConcern(worries[0], [], env)
+    : ['other'];
+
+  // FPマッチング（条件付き → フォールバック）
+  let fps = await findFPs(lifecycle, ageKey, categories, familyDetail, env);
+  if (!fps.length) {
+    const fbRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/fp_fps?active=eq.true&select=*`,
+      { headers: sbHeaders(env) }
+    );
+    const fbFps = await fbRes.json();
+    fps = Array.isArray(fbFps) ? fbFps : [];
+  }
+
+  const fp = fps.length ? fps[Math.floor(Math.random() * fps.length)] : null;
+
+  if (!fp) {
+    // FPが見つからない
+    await push(uid, '現在対応可能なFPを調整中です。少々お待ちください。', env);
+    return;
+  }
+
+  // セッション更新
+  if (sess.id) {
+    await updateSession(sess.id, { matched: true, selected_fp_id: fp.id, fp_line_user_id: fp.line_user_id }, env);
+  }
+
+  const fpMsg =
+    `新規相談者のご紹介です 📋\n\n` +
+    `年代：${ageRange}\n` +
+    `職業：${job}\n` +
+    `家族構成：${marital}${childInfo}\n` +
+    `お悩み：\n${worryLines}\n\n` +
+    `相談日時：調整中\n\n` +
+    `なるべく早く、オンライン面談用のURLをこのトークに送ってください 🔗\n` +
+    `⚠️ URLのみ送信してください（テキストを混ぜると認識できません）`;
+
+  if (fp.google_refresh_token) {
+    // カレンダー連携済み → 空き枠を取得してクライアントに日時選択を促す
+    const slots = await aggregateSlots([fp], env);
+    if (slots.length) {
+      const sessionId = sess.id;
+      await kv(env).put(`client:${uid}`, JSON.stringify({ slots, fp_ids: [fp.id], session_id: sessionId }));
+      await pushFlex(uid, slotFlex(slots, 1), env);
+    } else {
+      await push(uid,
+        'マッチングしました！担当のFPから近日中にLINEでご連絡いたします。\n\nそれまでの間に何か気になることがあれば、いつでもご連絡ください。',
+        env
+      );
+    }
+    if (fp.line_user_id) await push(fp.line_user_id, fpMsg, env);
+  } else {
+    // カレンダー未連携 → 従来フロー
+    await push(uid,
+      'マッチングしました！担当のFPから近日中にLINEでご連絡いたします。\n\nそれまでの間に何か気になることがあれば、いつでもご連絡ください。',
+      env
+    );
+    if (fp.line_user_id) await push(fp.line_user_id, fpMsg, env);
+  }
 }
 
 // ── 属性保存ヘルパー（fp_gacha_sessionsにupsert） ─────
@@ -946,7 +1288,7 @@ async function doFPMatch(uid, rt, env) {
 async function saveAttr(uid, data, env) {
   // 既存セッション確認
   const r = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?uid=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=id`,
+    `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?client_line_user_id=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=id`,
     { headers: sbHeaders(env) }
   );
   const rows = await r.json();
@@ -960,7 +1302,7 @@ async function saveAttr(uid, data, env) {
     await fetch(`${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions`, {
       method: 'POST',
       headers: { ...sbHeaders(env), Prefer: 'return=minimal' },
-      body: JSON.stringify({ uid, client_line_user_id: uid, status: 'collecting', ...data }),
+      body: JSON.stringify({ client_line_user_id: uid, status: 'collecting', ...data }),
     });
   }
 }
@@ -1074,18 +1416,32 @@ async function clientSlotTap(uid, rt, p, env) {
   const { m, d, wd, h } = jstParts(slot.start);
   const dateTimeStr = `${m}月${d}日(${wd}) ${h}:00〜${String(parseInt(h)+1).padStart(2,'0')}:00`;
 
-  // FPごとのURL待ちキューに追加
-  const queueKey = `fp_url_queue:${winner.line_user_id}`;
-  const queueRaw = await kv(env).get(queueKey);
-  const queue = queueRaw ? JSON.parse(queueRaw) : [];
-  queue.push({ clientUserId: uid, clientName: '相談者', dateTimeStr });
-  await kv(env).put(queueKey, JSON.stringify(queue));
+  // Google Meet URL を自動生成
+  const meetUrl = await createMeetEvent(winner, slot, uid, env).catch(() => '');
 
   await reply(rt, '🎲 ガチャを回しています…', env);
   await pushFlex(uid, resultFlex(winner, m, d, wd, h), env);
 
-  // FPに通知（URLをこのLINEに送るよう案内）
-  await notifyFP(winner, slot, env);
+  if (meetUrl) {
+    // URL自動生成成功 → 相談者に直接送信、FPにもURLを含めて通知
+    await push(uid,
+      `当日のオンライン相談はこちらからご参加ください。\n${meetUrl}\n\nご不明な点はお気軽にご連絡ください 🌿`, env);
+    if (winner.line_user_id) {
+      await push(winner.line_user_id,
+        `📅 FPガチャで予約が入りました！\n\n` +
+        `日時：${dateTimeStr}\n\n` +
+        `Google Meetが自動生成されました 🔗\n${meetUrl}\n\n` +
+        `※ 初回はオンライン相談のみ。対面はクライアント承認後に限ります。`, env);
+    }
+  } else {
+    // URL取得失敗 → 従来のキュー方式にフォールバック
+    const queueKey = `fp_url_queue:${winner.line_user_id}`;
+    const queueRaw = await kv(env).get(queueKey);
+    const queue = queueRaw ? JSON.parse(queueRaw) : [];
+    queue.push({ clientUserId: uid, clientName: '相談者', dateTimeStr });
+    await kv(env).put(queueKey, JSON.stringify(queue));
+    await notifyFP(winner, slot, env);
+  }
 
   // 評価ジョブ：相談終了1時間後に送信
   const sendAt = new Date(new Date(slot.end).getTime() + SLOT_MS).toISOString();
@@ -1131,6 +1487,44 @@ async function fpMenu(uid, text, rt, fp, env) {
   } else if (text === '再開') {
     await patchFP(uid, { active: true }, env);
     await reply(rt, '受付を再開しました ✅', env);
+  } else if (text === '登録変更') {
+    const token = crypto.randomUUID();
+    await kv(env).put(`fp_edit_token:${token}`, uid, { expirationTtl: 1800 });
+    await push(uid,
+      `登録情報の変更を承りました 🌿\n\n下記URLから30分以内に変更対応してください。\n${env.WORKER_URL}/fp/edit?token=${token}\n\n` +
+      `※ 名前・メールアドレス・電話番号の変更はお手数ですが管理者までご連絡ください`, env);
+  } else if (text === 'キャンセル') {
+    const fpSessRes = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?fp_line_user_id=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=*`,
+      { headers: sbHeaders(env) }
+    );
+    const fpSess = (await fpSessRes.json())[0] ?? null;
+    if (fpSess?.client_line_user_id) {
+      const reschedQR = [
+        { type: 'action', action: { type: 'message', label: 'はい', text: '日程変更' } },
+        { type: 'action', action: { type: 'message', label: 'いいえ', text: 'キャンセルしない' } },
+      ];
+      await replyQR(null, '担当FPより日程のキャンセルがありました。大変申し訳ございません。改めて日程を設定しますか？', reschedQR, env, fpSess.client_line_user_id);
+      await updateSession(fpSess.id, { status: 'fp_cancelled' }, env);
+    }
+    await reply(rt, 'キャンセルを受け付けました。相談者に通知しました。', env);
+  } else if (text === '日程変更') {
+    const fpSessRes2 = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?fp_line_user_id=eq.${encodeURIComponent(uid)}&order=created_at.desc&limit=1&select=*`,
+      { headers: sbHeaders(env) }
+    );
+    const fpSess2 = (await fpSessRes2.json())[0] ?? null;
+    if (fpSess2?.client_line_user_id) {
+      const newSlots = await aggregateSlots([fp], env);
+      if (newSlots.length) {
+        await kv(env).put(`client:${fpSess2.client_line_user_id}`, JSON.stringify({ slots: newSlots, fp_ids: [fp.id], session_id: fpSess2.id }));
+        await push(fpSess2.client_line_user_id, '担当FPより日程変更のご連絡です。新しい日程を選択してください 📅', env);
+        await pushFlex(fpSess2.client_line_user_id, slotFlex(newSlots, 1), env);
+      } else {
+        await push(fpSess2.client_line_user_id, '担当FPより日程変更のご連絡がありましたが、現在空き枠がありません。FPより改めてご連絡します。', env);
+      }
+    }
+    await reply(rt, '相談者に新しい日程を送りました。', env);
   } else {
     const lcLabels  = (fp.lifecycle_stages || []).map(k => LIFECYCLE_STAGES.find(s => s.key === k)?.label).join('・');
     const spLabels  = (fp.specialties || []).map(k => SPECIALTIES.find(s => s.key === k)?.label).join('・');
@@ -1160,6 +1554,33 @@ async function processRatingJobs(env) {
     await fetch(`${env.SUPABASE_URL}/rest/v1/fp_rating_jobs?id=eq.${job.id}`, {
       method: 'PATCH', headers: sbHeaders(env), body: JSON.stringify({ sent: true }),
     });
+  }
+}
+
+async function processNoShowCheck(env) {
+  const now = new Date();
+  const fifteenMinAgo = new Date(now.getTime() - 15 * 60 * 1000).toISOString();
+  const ninetyMinAgo  = new Date(now.getTime() - 90 * 60 * 1000).toISOString();
+
+  const res = await fetch(
+    `${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?status=eq.confirmed&no_show_checked=eq.false&scheduled_start=lte.${encodeURIComponent(fifteenMinAgo)}&scheduled_start=gte.${encodeURIComponent(ninetyMinAgo)}&select=*`,
+    { headers: sbHeaders(env) }
+  );
+  const sessions = await res.json();
+  if (!Array.isArray(sessions)) return;
+
+  for (const sess of sessions) {
+    await fetch(`${env.SUPABASE_URL}/rest/v1/fp_gacha_sessions?id=eq.${sess.id}`, {
+      method: 'PATCH', headers: sbHeaders(env),
+      body: JSON.stringify({ no_show_checked: true }),
+    });
+    if (sess.client_line_user_id) {
+      const noShowQR = [
+        { type: 'action', action: { type: 'message', label: 'FPが来ない', text: `FPが来ない_${sess.id}` } },
+        { type: 'action', action: { type: 'message', label: '面談中です', text: `面談中_${sess.id}` } },
+      ];
+      await replyQR(null, '面談は始まりましたか？\nもしFPが来ていない場合はお知らせください。', noShowQR, env, sess.client_line_user_id);
+    }
   }
 }
 
@@ -1635,7 +2056,7 @@ async function processReminders(env) {
 async function allReset(uid, rt, env) {
   await Promise.all([
     // 会話履歴を削除
-    fetch(`${env.SUPABASE_URL}/rest/v1/conversations?user_line_id=eq.${encodeURIComponent(uid)}`, {
+    fetch(`${env.SUPABASE_URL}/rest/v1/conversations?line_user_id=eq.${encodeURIComponent(uid)}`, {
       method: 'DELETE', headers: sbHeaders(env),
     }),
     // 相談セッションを削除
@@ -1654,7 +2075,7 @@ async function allReset(uid, rt, env) {
 // ── Conversation History ───────────────────────────────
 async function getHistory(uid, env) {
   const r = await fetch(
-    `${env.SUPABASE_URL}/rest/v1/conversations?user_line_id=eq.${encodeURIComponent(uid)}&order=created_at.asc&limit=30&select=role,content`,
+    `${env.SUPABASE_URL}/rest/v1/conversations?line_user_id=eq.${encodeURIComponent(uid)}&order=created_at.asc&limit=30&select=role,content`,
     { headers: sbHeaders(env) }
   );
   const rows = await r.json();
@@ -1674,7 +2095,7 @@ async function saveMessage(uid, role, content, env) {
   await fetch(`${env.SUPABASE_URL}/rest/v1/conversations`, {
     method: 'POST',
     headers: sbHeaders(env),
-    body: JSON.stringify({ user_line_id: uid, role, content }),
+    body: JSON.stringify({ line_user_id: uid, role, content }),
   });
 }
 

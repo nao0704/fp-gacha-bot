@@ -350,20 +350,59 @@
   <div class="form-card">
     <form id="regForm" method="POST" action="/fp/register-submit" novalidate>
 
-      <!-- STEP 1: FP名 -->
+      <!-- STEP 1: 基本情報 -->
       <p class="sec-label">STEP 1</p>
-      <p class="sec-title">お名前を入力してください</p>
-      <div>
-        <label class="field-label" for="fpName">
-          フルネーム <span class="badge-req">必須</span>
-        </label>
-        <input class="text-input" type="text" id="fpName" name="name"
-               placeholder="例：山田 太郎" autocomplete="name">
+      <p class="sec-title">基本情報を入力してください</p>
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        <div>
+          <label class="field-label" for="fpName">
+            フルネーム <span class="badge-req">必須</span>
+          </label>
+          <input class="text-input" type="text" id="fpName" name="name"
+                 placeholder="例：山田 太郎" autocomplete="name">
+        </div>
+        <div>
+          <label class="field-label" for="fpEmail">
+            メールアドレス <span class="badge-req">必須</span>
+          </label>
+          <input class="text-input" type="email" id="fpEmail" name="email"
+                 placeholder="例：yamada@example.com" autocomplete="email">
+        </div>
+        <div>
+          <label class="field-label" for="fpPhone">
+            電話番号 <span class="badge-req">必須</span>
+          </label>
+          <input class="text-input" type="tel" id="fpPhone" name="phone"
+                 placeholder="例：090-1234-5678" autocomplete="tel">
+        </div>
       </div>
 
       <hr class="form-divider">
 
-      <!-- STEP 2: 専門領域 -->
+      <!-- STEP 2: FP資格 -->
+      <p class="sec-label">STEP 2</p>
+      <p class="sec-title">FP資格を選択してください</p>
+      <div>
+        <label class="field-label" for="fpQualification">
+          保有資格（または取得予定） <span class="badge-req">必須</span>
+        </label>
+        <select class="text-input" id="fpQualification" name="qualification" style="cursor:pointer;">
+          <option value="">選択してください</option>
+          <option value="CFP">CFP</option>
+          <option value="1級FP技能士">1級FP技能士</option>
+          <option value="AFP">AFP</option>
+          <option value="2級FP技能士">2級FP技能士</option>
+          <option value="3級FP技能士">3級FP技能士</option>
+          <option value="生命保険協会認定FP（生保大学全課程修了）">生命保険協会認定FP（生保大学全課程修了）</option>
+          <option value="3ヶ月以内に3級取得予定">3ヶ月以内に3級取得予定</option>
+          <option value="半年以内に2級・AFP取得予定">半年以内に2級・AFP取得予定</option>
+          <option value="1年以内に1級・CFP取得予定">1年以内に1級・CFP取得予定</option>
+        </select>
+      </div>
+
+      <hr class="form-divider">
+
+      <!-- STEP 3: 専門領域 -->
       <p class="sec-label">STEP 2</p>
       <p class="sec-title">
         専門領域を選択してください
@@ -400,28 +439,7 @@
         </div>
       </div>
 
-      <hr class="form-divider">
-
-      <!-- STEP 3: 対応形式 -->
-      <p class="sec-label">STEP 3</p>
-      <p class="sec-title">
-        対応可能な相談形式
-        <small>複数選択可</small>
-      </p>
-      <div class="format-group">
-        <div class="format-item">
-          <input type="checkbox" id="fmt_online" name="formats" value="online" checked>
-          <label for="fmt_online">
-            <span class="fmt-icon">💻</span> オンライン
-          </label>
-        </div>
-        <div class="format-item">
-          <input type="checkbox" id="fmt_face" name="formats" value="inperson">
-          <label for="fmt_face">
-            <span class="fmt-icon">🤝</span> 対面
-          </label>
-        </div>
-      </div>
+      <input type="hidden" name="formats" value="online">
 
       <hr class="form-divider">
 
@@ -533,9 +551,14 @@
   const params = new URLSearchParams(location.search);
   const errEl = document.getElementById('errorMsg');
   const msgs = {
-    name:      'FP名（フルネーム）を入力してください。',
-    specialty: '専門領域を1つ以上選択してください。',
-    format:    '対応可能な相談形式を1つ以上選択してください。',
+    name:          'FP名（フルネーム）を入力してください。',
+    email:         '正しいメールアドレスを入力してください。',
+    phone:         '電話番号を正しく入力してください（10桁以上の数字）。',
+    qualification: 'FP資格を選択してください。',
+    specialty:     '専門領域を1つ以上選択してください。',
+    format:        '対応可能な相談形式を1つ以上選択してください。',
+    email_dup:     'このメールアドレスはすでに登録されています。',
+    save:          '登録に失敗しました。しばらくしてから再度お試しください。',
   };
   const errKey = params.get('error');
   if (errKey && msgs[errKey]) {
@@ -547,31 +570,24 @@
   // Client-side validation before submit
   document.getElementById('regForm').addEventListener('submit', function(e) {
     errEl.classList.remove('show');
-    const name = document.getElementById('fpName').value.trim();
-    const specialties = document.querySelectorAll('input[name="specialties"]:checked');
-    const formats = document.querySelectorAll('input[name="formats"]:checked');
+    const name          = document.getElementById('fpName').value.trim();
+    const email         = document.getElementById('fpEmail').value.trim();
+    const phone         = document.getElementById('fpPhone').value.trim();
+    const qualification = document.getElementById('fpQualification').value;
+    const specialties   = document.querySelectorAll('input[name="specialties"]:checked');
 
-    if (!name) {
+    function showErr(msg) {
       e.preventDefault();
-      errEl.textContent = msgs.name;
+      errEl.textContent = msg;
       errEl.classList.add('show');
       errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
     }
-    if (!specialties.length) {
-      e.preventDefault();
-      errEl.textContent = msgs.specialty;
-      errEl.classList.add('show');
-      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    if (!formats.length) {
-      e.preventDefault();
-      errEl.textContent = msgs.format;
-      errEl.classList.add('show');
-      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
+
+    if (!name)                              return showErr(msgs.name);
+    if (!email || !email.includes('@'))     return showErr(msgs.email);
+    if (!phone || phone.replace(/[^0-9]/g,'').length < 10) return showErr(msgs.phone);
+    if (!qualification)                     return showErr(msgs.qualification);
+    if (!specialties.length)                return showErr(msgs.specialty);
 
     document.getElementById('submitBtn').disabled = true;
     document.getElementById('submitBtn').textContent = '処理中…';
