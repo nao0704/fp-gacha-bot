@@ -104,11 +104,7 @@ const SYSTEM_PHASE1 =
   '■表現を毎回変える：会話履歴を参照し、過去に使った共感フレーズは絶対に再使用しない。文頭に「なるほど」「そうですね」を連続して使わない。同じ絵文字を連続で使わない。短い返答と少し長めの返答を交互に使う。毎回同じ文字数にならないようにする。\n' +
   '■トーンを悩みに合わせる：深刻な悩み（借金・病気・離別など）→落ち着いた、寄り添うトーンで。前向きな相談（投資・資産運用など）→少し明るく一緒にワクワクするトーンで。\n' +
   '■会話の流れを作る：悩みが2つ以上出てきたら「〇つ教えていただきましたね。」と自然に整理する。前の発言を受けて展開する。例：「さっき保険のこともおっしゃっていましたが、他にも気になることはありますか？」ユーザーの言葉をそのまま繰り返して確認することも有効。例：「貯金が増えない、というお気持ちですね。」\n' +
-  '■深掘りで締める：共感の後は必ず「他にも気になっていることはありますか？もしあればそのまま送ってください。」を添える。\n' +
-  '\n' +
-  '【完了サインの検知】\n' +
-  '以下のキーワードを含むメッセージを受け取ったら即座にPhase 2へ移行する。AIによる判断は行わず文字列マッチを優先：\n' +
-  '「それぐらい」「そのぐらい」「以上」「ないです」「特にない」「とくにない」「大丈夫です」「それだけ」「結構です」「ありません」「特にないです」\n' +
+  '■深掘りで締める：共感の後は必ず「他にも気になっていることはありますか？」と添える。返答の選択はボタンで行う（「悩みはそれぐらいです」「まだあります」）。\n' +
   '\n' +
   '【禁止事項】\n' +
   '・定型文「なるほど、それは大事なお悩みですね」\n' +
@@ -208,10 +204,10 @@ const WELCOME_MSG =
 //  新フロー定数・データ
 // ════════════════════════════════════════════════════════
 
-// フェーズ1 完了キーワード（いずれかが含まれていたら即Phase 2へ）
-const COMPLETION_KEYWORDS = [
-  'それぐらい', 'そのぐらい', '以上', 'ないです', '特にない', 'とくにない',
-  '大丈夫です', 'それだけ', '結構です', 'ありません', '特にないです',
+// Phase 1 Quick Reply ボタン（悩み深掘りループ用）
+const PHASE1_QR = [
+  { type: 'action', action: { type: 'message', label: '悩みはそれぐらいです', text: '悩みはそれぐらいです' } },
+  { type: 'action', action: { type: 'message', label: 'まだあります', text: 'まだあります' } },
 ];
 
 // カテゴリー別悩みカード（Flex Message カルーセル用）
@@ -750,6 +746,19 @@ async function oauthCallback(request, env) {
 // ── Phase 1: 悩み深掘りループ ────────────────────────
 
 async function handlePhase1(uid, text, rt, env) {
+  // ボタン「悩みはそれぐらいです」→ Phase 2へ移行
+  if (text === '悩みはそれぐらいです') {
+    await kv(env).put(`phase:${uid}`, '2');
+    await enterPhase2(uid, rt, env);
+    return;
+  }
+
+  // ボタン「まだあります」→ 続きを促す（DB保存不要）
+  if (text === 'まだあります') {
+    await replyQR(rt, 'ぜひ教えてください😊 他にどんなことが気になっていますか？', PHASE1_QR, env);
+    return;
+  }
+
   // 悩みをDBに保存（phase=1 として）
   await fetch(`${env.SUPABASE_URL}/rest/v1/conversations`, {
     method: 'POST',
@@ -757,19 +766,9 @@ async function handlePhase1(uid, text, rt, env) {
     body: JSON.stringify({ user_line_id: uid, role: 'user', content: text, phase: 1 }),
   });
 
-  // 完了キーワード検出（文字列チェック最優先、AI判断なし）→ Phase 2へ移行
-  const normalized = text.trim().replace(/[。！!？?…\s]+$/, '');
-  const isComplete = COMPLETION_KEYWORDS.some(kw => normalized.includes(kw));
-  if (isComplete) {
-    await kv(env).put(`phase:${uid}`, '2');
-    await enterPhase2(uid, rt, env);
-    return;
-  }
-
-  // 共感返答 + 続きを促す
+  // 共感返答 + Quick Replyボタン2つ
   const empathy = getEmpathy(text);
-  const followUp = '他にも気になっていることはありますか？\nもしあればそのまま送ってください。';
-  await reply(rt, `${empathy}\n\n${followUp}`, env);
+  await replyQR(rt, `${empathy}\n\n他にも気になっていることはありますか？`, PHASE1_QR, env);
 }
 
 // ── Phase 2: 属性収集（Quick Reply） ─────────────────
