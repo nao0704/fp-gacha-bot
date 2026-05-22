@@ -1097,7 +1097,7 @@ async function handlePhase4(uid, text, rt, env) {
       const slots2 = await aggregateSlots([fp2], env);
       if (slots2.length) {
         await kv(env).put(`client:${uid}`, JSON.stringify({ slots: slots2, fp_ids: [fp2.id], session_id: sess2.id }));
-        await reply(rt, '新しい日程をお選びください 📅', env);
+        await reply(rt, 'かしこまりました。日程変更のご希望ですね。\n新しい日程をお選びください 📅', env);
         await pushFlex(uid, slotFlex(slots2, 1), env);
       } else {
         await replyQR(rt, '現在空き枠がありません。FPに連絡します 🌿', PHASE4_QR, env);
@@ -1253,6 +1253,13 @@ async function handlePhase4(uid, text, rt, env) {
   if (matched) {
     await push(env.ADMIN_LINE_ID,
       `⚠️ 重要ワード検知\nキーワード：「${matched}」\nユーザーID：${uid}\n内容：${text}`, env);
+  }
+
+  // 日程変更ワード検知 → 変更フローに誘導
+  if (text.includes('日程変更') || text.includes('変更したい') || text.includes('日程を変えたい')) {
+    text = '日程変更';
+    await handlePhase4(uid, text, rt, env);
+    return;
   }
 
   // AI応答
@@ -1526,11 +1533,14 @@ async function clientSlotTap(uid, rt, p, env) {
   }, env);
   await kv(env).delete(`client:${uid}`);
 
+  // セッション属性をカレンダー情報に含めるため取得
+  const sessForMeet = await getSession(session_id, env) ?? {};
+
   const { m, d, wd, h } = jstParts(slot.start);
   const dateTimeStr = `${m}月${d}日(${wd}) ${h}:00〜${String(parseInt(h)+1).padStart(2,'0')}:00`;
 
   // Google Meet URL を自動生成
-  const meetUrl = await createMeetEvent(winner, slot, uid, env).catch(() => '');
+  const meetUrl = await createMeetEvent(winner, slot, uid, env, sessForMeet).catch(() => '');
 
   await reply(rt, '🎲 ガチャを回しています…', env);
   await pushFlex(uid, resultFlex(winner, m, d, wd, h), env);
@@ -1867,7 +1877,7 @@ async function aggregateSlots(fps, env) {
   })));
 
   const slots = [];
-  for (let day = 0; day < MAX_DAYS && slots.length < SLOTS_TO_SHOW; day++) {
+  for (let day = 1; day < MAX_DAYS && slots.length < SLOTS_TO_SHOW; day++) {
     const { y, mo, dy } = jstYMD(now + day * 86_400_000);
     for (let h = 8; h < 22 && slots.length < SLOTS_TO_SHOW; h++) {
       const ss = Date.UTC(y, mo, dy, h - 9);
@@ -1899,7 +1909,7 @@ async function availFPsAtSlot(fpIds, slot, env) {
   return results.filter(Boolean);
 }
 
-async function createMeetEvent(fp, slot, clientUid, env) {
+async function createMeetEvent(fp, slot, clientUid, env, sess = {}) {
   const tok = await refreshToken(fp.google_refresh_token, env);
   const res = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(fp.google_calendar_id)}/events?conferenceDataVersion=1`,
@@ -1907,8 +1917,8 @@ async function createMeetEvent(fp, slot, clientUid, env) {
       method: 'POST',
       headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        summary:     'FPガチャ 個別相談',
-        description: `クライアントID: ${clientUid}`,
+        summary:     `FPガチャ 個別相談（${sess.gender || ''}・${sess.age_range || ''}・${sess.job_status || ''}）`,
+        description: `相談者属性：${sess.gender || '不明'} / ${sess.age_range || '不明'} / ${sess.job_status || '不明'} / ${sess.marital_status || '不明'}\nクライアントID: ${clientUid}`,
         start: { dateTime: slot.start, timeZone: 'Asia/Tokyo' },
         end:   { dateTime: slot.end,   timeZone: 'Asia/Tokyo' },
         conferenceData: { createRequest: { requestId: crypto.randomUUID(), conferenceSolutionKey: { type: 'hangoutsMeet' } } },
@@ -1989,7 +1999,7 @@ async function notifyFP(fp, slot, env) {
   if (!fp.line_user_id) return;
   const { m, d, wd, h } = jstParts(slot.start);
   await push(fp.line_user_id,
-    `📅 FPガチャで予約が入りました！\n\n` +
+    `📅 予約に変更がありました！\n\n` +
     `日時：${m}月${d}日(${wd}) ${h}:00〜${String(parseInt(h)+1).padStart(2,'0')}:00\n\n` +
     `ZoomまたはGoogle MeetなどのURLを発行したら、\nこのトークにURLを貼り付けてください。\n相談者に自動で転送されます 🔗\n\n` +
     `※ 初回はオンライン相談のみ。対面はクライアント承認後に限ります。`, env);
