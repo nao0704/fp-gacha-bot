@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>エージェント管理｜FPガチャ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #F0F7FF;
+      color: #1E3A5F;
+      min-height: 100vh;
+    }
+
+    /* ── PASSWORD SCREEN ── */
+    #pwScreen {
+      position: fixed;
+      inset: 0;
+      background: #F0F7FF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 100;
+    }
+    .pw-card {
+      background: #fff;
+      border: 1px solid #D1E0FF;
+      border-radius: 24px;
+      padding: 48px 36px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(26,86,219,0.08);
+    }
+    .pw-icon { font-size: 2.8rem; margin-bottom: 16px; }
+    .pw-card h2 {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: #1E3A5F;
+      margin-bottom: 6px;
+    }
+    .pw-card p {
+      font-size: 0.88rem;
+      color: #6B7280;
+      margin-bottom: 28px;
+    }
+    .pw-input {
+      width: 100%;
+      background: #F8FAFF;
+      border: 1.5px solid #D1E0FF;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 1rem;
+      font-family: 'Noto Sans JP', sans-serif;
+      color: #1E3A5F;
+      outline: none;
+      margin-bottom: 14px;
+      text-align: center;
+      letter-spacing: 0.15em;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .pw-input:focus {
+      border-color: #1A56DB;
+      box-shadow: 0 0 0 3px rgba(26,86,219,0.12);
+    }
+    .pw-error {
+      font-size: 0.82rem;
+      color: #DC2626;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .pw-error.show { display: block; }
+    .pw-btn {
+      width: 100%;
+      background: #1A56DB;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      font-family: 'Noto Sans JP', sans-serif;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .pw-btn:hover { background: #1648C0; transform: translateY(-1px); }
+
+    /* ── MAIN (hidden until auth) ── */
+    #main { display: none; }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(135deg, #1A56DB 0%, #2563EB 60%, #1D4ED8 100%);
+      padding: 48px 24px 68px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 280px; height: 280px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0; right: 0;
+      height: 48px;
+      background: #F0F7FF;
+      clip-path: ellipse(55% 100% at 50% 100%);
+    }
+    .header-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      font-size: 0.73rem;
+      font-weight: 700;
+      padding: 6px 18px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+      letter-spacing: 0.12em;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+    .header h1 {
+      font-size: clamp(1.5rem, 4vw, 2.2rem);
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+    .header h1 em { font-style: normal; color: #BAD8FD; }
+    .header-sub {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.8);
+    }
+
+    /* ── CONTENT ── */
+    .content {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: #fff;
+      border: 1px solid #D1E0FF;
+      border-radius: 20px;
+      padding: 36px;
+      box-shadow: 0 4px 24px rgba(26,86,219,0.07);
+      margin-bottom: 32px;
+    }
+    @media (max-width: 540px) { .card { padding: 24px 18px; } }
+    .card-title {
+      font-size: 1rem;
+      font-weight: 900;
+      color: #1E3A5F;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background: #1A56DB;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    /* ── FORM ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 540px) { .form-grid { grid-template-columns: 1fr; } }
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    .field.full { grid-column: 1 / -1; }
+    .field-label {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #1E3A5F;
+    }
+    .field-label .req {
+      display: inline-block;
+      background: #1A56DB;
+      color: #fff;
+      font-size: 0.65rem;
+      padding: 1px 7px;
+      border-radius: 999px;
+      margin-left: 6px;
+      vertical-align: middle;
+      font-weight: 700;
+    }
+    .text-input {
+      background: #F8FAFF;
+      border: 1.5px solid #D1E0FF;
+      border-radius: 10px;
+      padding: 13px 16px;
+      font-size: 0.95rem;
+      font-family: 'Noto Sans JP', sans-serif;
+      color: #1E3A5F;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .text-input::placeholder { color: #9DB5D8; }
+    .text-input:focus {
+      border-color: #1A56DB;
+      box-shadow: 0 0 0 3px rgba(26,86,219,0.1);
+    }
+    .text-input[readonly] {
+      background: #EFF4FF;
+      color: #1A56DB;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      cursor: default;
+    }
+    .code-row {
+      display: flex;
+      gap: 8px;
+    }
+    .code-row .text-input { flex: 1; }
+    .regen-btn {
+      background: #EFF4FF;
+      border: 1.5px solid #BFDBFE;
+      border-radius: 10px;
+      padding: 0 14px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #1A56DB;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: 'Noto Sans JP', sans-serif;
+      transition: background 0.15s;
+    }
+    .regen-btn:hover { background: #DBEAFE; }
+
+    /* ── ERROR ── */
+    .form-error {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.85rem;
+      color: #DC2626;
+      margin-top: 16px;
+      display: none;
+    }
+    .form-error.show { display: block; }
+
+    /* ── SUBMIT ── */
+    .submit-row {
+      margin-top: 24px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .submit-btn {
+      background: #1A56DB;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 14px 36px;
+      font-size: 0.95rem;
+      font-weight: 900;
+      font-family: 'Noto Sans JP', sans-serif;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 16px rgba(26,86,219,0.25);
+    }
+    .submit-btn:hover { background: #1648C0; transform: translateY(-1px); }
+
+    /* ── TABLE ── */
+    .table-meta {
+      font-size: 0.82rem;
+      color: #6B7280;
+      margin-bottom: 16px;
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    thead th {
+      background: #EFF4FF;
+      color: #1A56DB;
+      font-weight: 700;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      padding: 12px 14px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    thead th:first-child { border-radius: 8px 0 0 8px; }
+    thead th:last-child  { border-radius: 0 8px 8px 0; }
+    tbody tr {
+      border-bottom: 1px solid #E8F0FE;
+      transition: background 0.15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #F8FAFF; }
+    tbody td {
+      padding: 14px;
+      color: #1E3A5F;
+      vertical-align: middle;
+    }
+    .code-badge {
+      display: inline-block;
+      background: #EFF4FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #1A56DB;
+      letter-spacing: 0.1em;
+      font-family: monospace;
+    }
+    .url-cell {
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.78rem;
+      color: #4B6A8A;
+      font-family: monospace;
+    }
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #EFF4FF;
+      border: 1px solid #BFDBFE;
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #1A56DB;
+      cursor: pointer;
+      font-family: 'Noto Sans JP', sans-serif;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .copy-btn:hover { background: #DBEAFE; }
+    .copy-btn.copied {
+      background: #ECFDF5;
+      border-color: #A7F3D0;
+      color: #065F46;
+    }
+    .reward-cell {
+      font-weight: 700;
+      color: #1A56DB;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: #9DB5D8;
+      font-size: 0.9rem;
+    }
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .delete-btn {
+      background: none;
+      border: 1px solid #FECACA;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #DC2626;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .delete-btn:hover { background: #FEF2F2; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #1E3A5F;
+      color: rgba(255,255,255,0.4);
+      text-align: center;
+      padding: 20px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── PASSWORD SCREEN ── -->
+<div id="pwScreen">
+  <div class="pw-card">
+    <div class="pw-icon">🔐</div>
+    <h2>管理者ログイン</h2>
+    <p>このページは管理者専用です。<br>パスワードを入力してください。</p>
+    <input class="pw-input" type="password" id="pwInput" placeholder="パスワード" autocomplete="current-password">
+    <p class="pw-error" id="pwError">パスワードが正しくありません。</p>
+    <button class="pw-btn" id="pwBtn">ログイン</button>
+  </div>
+</div>
+
+<!-- ── MAIN CONTENT ── -->
+<div id="main">
+  <header class="header">
+    <div class="header-badge">ADMIN / AGENT MANAGEMENT</div>
+    <h1>エージェント<em>管理ページ</em></h1>
+    <p class="header-sub">追跡URLの発行・登録者数・報酬の確認ができます</p>
+  </header>
+
+  <div class="content">
+
+    <!-- 登録フォーム -->
+    <div class="card">
+      <p class="card-title">エージェント登録</p>
+      <form id="agentForm" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label class="field-label" for="companyName">会社名 <span class="req">必須</span></label>
+            <input class="text-input" type="text" id="companyName" placeholder="例：株式会社〇〇">
+          </div>
+          <div class="field">
+            <label class="field-label" for="contactName">担当者名 <span class="req">必須</span></label>
+            <input class="text-input" type="text" id="contactName" placeholder="例：山田 太郎">
+          </div>
+          <div class="field full">
+            <label class="field-label" for="agentEmail">メールアドレス <span class="req">必須</span></label>
+            <input class="text-input" type="email" id="agentEmail" placeholder="例：yamada@example.com">
+          </div>
+          <div class="field full">
+            <label class="field-label" for="agentCode">エージェントコード（自動生成）</label>
+            <div class="code-row">
+              <input class="text-input" type="text" id="agentCode" readonly>
+              <button type="button" class="regen-btn" id="regenBtn">再生成</button>
+            </div>
+          </div>
+        </div>
+        <div class="form-error" id="formError"></div>
+        <div class="submit-row">
+          <button type="submit" class="submit-btn">登録する</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 登録済み一覧 -->
+    <div class="card">
+      <p class="card-title">登録済みエージェント一覧</p>
+      <p class="table-meta" id="tableMeta">0件登録済み</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>会社名</th>
+              <th>担当者名</th>
+              <th>コード</th>
+              <th>追跡URL</th>
+              <th>登録者数</th>
+              <th>報酬額</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="agentTableBody"></tbody>
+        </table>
+      </div>
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">📋</div>
+        <p>まだエージェントが登録されていません。<br>上のフォームから登録してください。</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>&copy; 2025 FPガチャ 管理者専用</footer>
+
+<script>
+  const PASSWORD = 'fpgacha2025';
+  const BASE_URL = 'https://fp-gacha-bot.parcy0704.workers.dev';
+
+  function authHeaders() {
+    return { 'Content-Type': 'application/json', 'X-Admin-Password': PASSWORD };
+  }
+
+  // ── AUTH ──
+  function checkAuth() { return sessionStorage.getItem('fpgacha_admin') === '1'; }
+  function login() {
+    const val = document.getElementById('pwInput').value;
+    if (val === PASSWORD) {
+      sessionStorage.setItem('fpgacha_admin', '1');
+      document.getElementById('pwScreen').style.display = 'none';
+      document.getElementById('main').style.display = 'block';
+      initPage();
+    } else {
+      document.getElementById('pwError').classList.add('show');
+      document.getElementById('pwInput').focus();
+    }
+  }
+  document.getElementById('pwBtn').addEventListener('click', login);
+  document.getElementById('pwInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') login();
+    document.getElementById('pwError').classList.remove('show');
+  });
+  if (checkAuth()) {
+    document.getElementById('pwScreen').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+  }
+
+  // ── CODE GENERATOR ──
+  function generateCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  }
+
+  // ── API ──
+  async function fetchAgents() {
+    const res = await fetch(`${BASE_URL}/api/agents`, { headers: authHeaders() });
+    if (!res.ok) return [];
+    return res.json();
+  }
+  async function createAgent(data) {
+    return fetch(`${BASE_URL}/api/agents`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(data) });
+  }
+  async function deleteAgent(id) {
+    return fetch(`${BASE_URL}/api/agents/${id}`, { method: 'DELETE', headers: authHeaders() });
+  }
+
+  // ── RENDER TABLE ──
+  async function renderTable() {
+    const agents = await fetchAgents();
+    const tbody = document.getElementById('agentTableBody');
+    const empty = document.getElementById('emptyState');
+    const meta  = document.getElementById('tableMeta');
+
+    meta.textContent = `${agents.length}件登録済み`;
+    tbody.innerHTML = '';
+
+    if (!agents.length) { empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    agents.forEach(agent => {
+      const url = `https://liff.line.me/2010168612-sAEWwrFD?ref=${agent.code}`;
+      const reward = (agent.registrations * 1000).toLocaleString();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${escHtml(agent.companyName)}</strong></td>
+        <td>${escHtml(agent.contactName)}</td>
+        <td><span class="code-badge">${escHtml(agent.code)}</span></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="url-cell" title="${escHtml(url)}">${escHtml(url)}</span>
+            <button class="copy-btn" data-url="${escHtml(url)}">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              コピー
+            </button>
+          </div>
+        </td>
+        <td>${agent.registrations}</td>
+        <td class="reward-cell">¥${reward}</td>
+        <td><button class="delete-btn" data-id="${escHtml(agent.id)}">削除</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.url).then(() => {
+          btn.classList.add('copied');
+          btn.textContent = '✓ コピー済み';
+          setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> コピー`;
+          }, 2000);
+        });
+      });
+    });
+
+    tbody.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('このエージェントを削除しますか？')) return;
+        await deleteAgent(btn.dataset.id);
+        renderTable();
+      });
+    });
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ── FORM ──
+  async function initPage() {
+    document.getElementById('agentCode').value = generateCode();
+    await renderTable();
+  }
+
+  document.getElementById('regenBtn').addEventListener('click', () => {
+    document.getElementById('agentCode').value = generateCode();
+  });
+
+  document.getElementById('agentForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const errEl = document.getElementById('formError');
+    errEl.classList.remove('show');
+
+    const companyName = document.getElementById('companyName').value.trim();
+    const contactName = document.getElementById('contactName').value.trim();
+    const agentEmail  = document.getElementById('agentEmail').value.trim();
+    const code        = document.getElementById('agentCode').value.trim();
+
+    if (!companyName) return showErr('会社名を入力してください。');
+    if (!contactName) return showErr('担当者名を入力してください。');
+    if (!agentEmail || !agentEmail.includes('@')) return showErr('正しいメールアドレスを入力してください。');
+
+    const submitBtn = document.querySelector('.submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = '登録中...';
+
+    const res = await createAgent({ company_name: companyName, contact_name: contactName, email: agentEmail, code });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = '登録する';
+
+    if (res.status === 409) return showErr('このコードまたはメールアドレスはすでに登録されています。');
+    if (!res.ok) return showErr('登録に失敗しました。しばらくしてから再試行してください。');
+
+    document.getElementById('agentForm').reset();
+    document.getElementById('agentCode').value = generateCode();
+    document.getElementById('companyName').focus();
+    await renderTable();
+
+    function showErr(msg) {
+      errEl.textContent = msg;
+      errEl.classList.add('show');
+      submitBtn.disabled = false;
+      submitBtn.textContent = '登録する';
+    }
+  });
+
+  if (checkAuth()) initPage();
+</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FPガチャ</title>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  body { font-family: 'Noto Sans JP', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #F0F7FF; }
+  .card { background: white; border-radius: 20px; padding: 40px 32px; text-align: center; max-width: 360px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+  img { width: 120px; margin-bottom: 20px; }
+  h1 { font-size: 1.3rem; color: #1A3A5C; margin-bottom: 12px; }
+  p { font-size: 0.9rem; color: #666; line-height: 1.7; margin-bottom: 24px; }
+  .loading { color: #3B82F6; font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<div class="card">
+  <img src="/images/logo-vertical.png" alt="FPガチャ">
+  <h1>FPガチャへようこそ！</h1>
+  <p>お金の悩みをAIが聞いて、ぴったりのFPをマッチングします。</p>
+  <p class="loading">準備中...</p>
+</div>
+<script>
+  async function init() {
+    await liff.init({ liffId: '2010168612-sAEWwrFD' });
+
+    // URLからrefパラメータ取得
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref') ||
+      new URLSearchParams(liff.getDecodedIDToken()?.state || '').get('ref') || '';
+
+    // プロフィール取得
+    let lineUserId = '';
+    try {
+      const profile = await liff.getProfile();
+      lineUserId = profile.userId;
+    } catch(e) {}
+
+    // サーバーに送信
+    if (ref || lineUserId) {
+      await fetch('/liff/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref, lineUserId })
+      });
+    }
+
+    // LINEボットに遷移
+    if (liff.isInClient()) {
+      liff.closeWindow();
+    } else {
+      window.location.href = 'https://line.me/R/ti/p/@' + '7OS8Lib';
+    }
+  }
+  init();
+</script>
+</body>
+</html>

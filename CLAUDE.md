@@ -282,13 +282,17 @@ WORKER_URL   = "https://fp-gacha-bot.parcy0704.workers.dev"
 
 フォーム項目：
 - STEP1: 氏名 / メールアドレス / 電話番号（10桁以上）
-- STEP2: FP資格（select）
-- STEP3: 専門領域（checkboxes、15種）
+- STEP2: FP資格（checkboxes、複数選択可・1つ以上必須、name="qualifications"）
+- STEP3: 専門領域（checkboxes、15種、name="specialties"）
 - STEP4: 対応年代（checkboxes）
 - STEP5: 家族構成（checkboxes）
 - hidden: `formats=online`（送信はするが保存しない）
 
-バリデーション順: name → email → phone(10桁) → qualification → specialty
+バリデーション順: name → email → phone(10桁) → qualifications(1つ以上) → specialty
+
+**資格選択肢**: CFP / 1級FP技能士 / AFP / 2級FP技能士 / 3級FP技能士 / 生命保険協会認定FP（生保大学全課程修了）/ 3ヶ月以内に3級取得予定 / 半年以内に2級・AFP取得予定 / 1年以内に1級・CFP取得予定
+
+**handleFPWebRegStart の資格処理**: `data.getAll('qualifications')` で配列取得 → `join('・')` で結合して `qualification`（text型）に保存
 
 `/fp/register-submit` POST → `handleFPWebRegStart()` → Supabase `fp_fps` にINSERT（`active=false`, `line_user_id=null`）
 

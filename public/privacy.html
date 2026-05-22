@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プライバシーポリシー｜FPガチャ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #FFF5F0;
+      color: #1A3A5C;
+      min-height: 100vh;
+      line-height: 1.8;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(160deg, #122840 0%, #1A3A5C 100%);
+      padding: 48px 20px 68px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '🔐';
+      position: absolute;
+      font-size: 10rem;
+      opacity: 0.04;
+      top: -10px; right: -20px;
+      pointer-events: none;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0; right: 0;
+      height: 44px;
+      background: #FFF5F0;
+      clip-path: ellipse(55% 100% at 50% 100%);
+    }
+    .header-inner { position: relative; z-index: 1; }
+    .header-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255,255,255,0.6);
+      font-size: 0.82rem;
+      text-decoration: none;
+      margin-bottom: 20px;
+      transition: color 0.2s;
+    }
+    .header-back:hover { color: rgba(255,255,255,0.9); }
+    .header h1 {
+      font-size: clamp(1.5rem, 5vw, 2.2rem);
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .header-date { font-size: 0.82rem; color: rgba(255,255,255,0.5); }
+
+    /* ── CONTENT ── */
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+
+    /* ── SECTION ── */
+    .policy-section {
+      background: #fff;
+      border-radius: 18px;
+      padding: 32px 28px;
+      margin-bottom: 20px;
+      border: 1px solid #FFE8E0;
+      box-shadow: 0 2px 16px rgba(26,58,92,0.05);
+    }
+    @media (max-width: 480px) { .policy-section { padding: 24px 18px; } }
+
+    .policy-section h2 {
+      font-size: 1rem;
+      font-weight: 900;
+      color: #1A3A5C;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .policy-section h2::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background: linear-gradient(135deg, #FF6B8A, #FF9561);
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    .policy-section p {
+      font-size: 0.92rem;
+      color: #4A5568;
+      line-height: 1.85;
+      margin-bottom: 10px;
+    }
+    .policy-section p:last-child { margin-bottom: 0; }
+    .policy-section ul {
+      margin: 8px 0 10px 20px;
+      font-size: 0.92rem;
+      color: #4A5568;
+      line-height: 1.85;
+    }
+    .policy-section ul li { margin-bottom: 4px; }
+    .policy-section a {
+      color: #1A3A5C;
+      font-weight: 700;
+    }
+
+    /* ── INTRO ── */
+    .intro-box {
+      background: linear-gradient(135deg, #EAF4FF, #F0F7FF);
+      border: 1px solid #BFDBFE;
+      border-radius: 14px;
+      padding: 22px 24px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      color: #1A3A5C;
+      line-height: 1.8;
+    }
+
+    /* ── TABLE ── */
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 8px;
+    }
+    .info-table th, .info-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid #FFE8E0;
+      vertical-align: top;
+    }
+    .info-table th {
+      width: 35%;
+      font-weight: 700;
+      color: #1A3A5C;
+      white-space: nowrap;
+    }
+    .info-table td { color: #4A5568; }
+    .info-table tr:last-child th,
+    .info-table tr:last-child td { border-bottom: none; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0E1F30;
+      color: rgba(255,255,255,0.35);
+      text-align: center;
+      padding: 28px 20px;
+      font-size: 0.8rem;
+      line-height: 2;
+    }
+    footer a { color: rgba(255,255,255,0.5); text-decoration: none; }
+    footer a:hover { color: rgba(255,255,255,0.8); }
+    .footer-links { margin-bottom: 8px; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 16px; }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a href="/" class="header-back">← FPガチャ トップへ</a>
+    <h1>プライバシーポリシー</h1>
+    <p class="header-date">制定日：2025年1月</p>
+  </div>
+</header>
+
+<main>
+  <div class="intro-box">
+    MIRAISE GLOBAL（以下「当社」）は、FPガチャ（以下「本サービス」）における利用者の個人情報の取扱いについて、以下のとおりプライバシーポリシーを定めます。本サービスをご利用いただくことで、本ポリシーに同意したものとみなします。
+  </div>
+
+  <div class="policy-section">
+    <h2>第1条　事業者情報</h2>
+    <table class="info-table">
+      <tr>
+        <th>事業者名</th>
+        <td>MIRAISE GLOBAL</td>
+      </tr>
+      <tr>
+        <th>代表者</th>
+        <td>蛭田 尚宏</td>
+      </tr>
+      <tr>
+        <th>お問い合わせ</th>
+        <td><a href="mailto:parcy0704@gmail.com">parcy0704@gmail.com</a></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="policy-section">
+    <h2>第2条　収集する情報</h2>
+    <p>本サービスでは、以下の情報を収集します。</p>
+    <ul>
+      <li><strong>LINEユーザーID</strong>：LINE Messaging APIを通じて自動取得</li>
+      <li><strong>相談内容</strong>：チャットで送信いただいたテキストメッセージ</li>
+      <li><strong>属性情報</strong>：年代・職業・婚姻状況・家族構成など（ご回答いただいたもの）</li>
+      <li><strong>利用状況</strong>：サービス利用日時・マッチング結果・面談の実施状況</li>
+    </ul>
+  </div>
+
+  <div class="policy-section">
+    <h2>第3条　利用目的</h2>
+    <p>収集した情報は、以下の目的のみに使用します。</p>
+    <ul>
+      <li>FP（ファイナンシャルプランナー）とのマッチング処理</li>
+      <li>面談の日程調整・Google Meetリンクの発行</li>
+      <li>本サービスの機能改善および品質向上</li>
+      <li>統計分析（個人を特定できない形式での集計）</li>
+      <li>お問い合わせへの対応</li>
+    </ul>
+  </div>
+
+  <div class="policy-section">
+    <h2>第4条　第三者への提供</h2>
+    <p>当社は、以下の場合を除き、利用者の個人情報を第三者に提供しません。</p>
+    <ul>
+      <li><strong>マッチングしたFPへの提供</strong>：相談者とマッチングした担当FPに対して、面談に必要な範囲で相談内容・属性情報を共有します（利用者の同意のもとで行います）</li>
+      <li><strong>法令に基づく開示</strong>：法律上の義務がある場合</li>
+    </ul>
+    <p>なお、利用者のLINE IDはFPに開示されません。</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>第5条　利用する外部サービス</h2>
+    <p>本サービスは以下の外部サービスを利用しており、各サービスのプライバシーポリシーが適用されます。</p>
+    <ul>
+      <li><strong>LINE Messaging API</strong>（LINE株式会社）：チャット機能の提供</li>
+      <li><strong>Anthropic Claude API</strong>（Anthropic, PBC）：AI応答・悩み分類処理</li>
+      <li><strong>Supabase</strong>（Supabase Inc.）：会話履歴・FP情報のデータベース管理</li>
+      <li><strong>Cloudflare Workers</strong>（Cloudflare, Inc.）：サーバーレス実行・ホスティング</li>
+      <li><strong>Google Calendar API / Google Meet</strong>（Google LLC）：面談スケジュール管理・オンライン会議</li>
+      <li><strong>Stripe</strong>（Stripe, Inc.）：決済処理</li>
+    </ul>
+  </div>
+
+  <div class="policy-section">
+    <h2>第6条　情報の保存期間</h2>
+    <p>収集した個人情報は、相談終了後<strong>1年間</strong>保存します。保存期間経過後は、速やかに削除または匿名化処理を行います。</p>
+    <p>なお、利用者本人からの削除依頼があった場合は、法令上の義務がある場合を除き、速やかに対応します。</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>第7条　セキュリティ</h2>
+    <p>当社は、収集した個人情報の漏えい・滅失・毀損の防止のため、適切なセキュリティ対策を講じます。ただし、インターネット上の通信はいかなる手段によっても完全な安全性を保証することはできません。</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>第8条　Cookie・解析ツールについて</h2>
+    <p>本サービスのWebページではCookieやアクセス解析ツールを使用する場合があります。これらは統計的な利用状況の把握のみに使用し、個人を特定する目的には使用しません。</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>第9条　プライバシーポリシーの変更</h2>
+    <p>当社は、本ポリシーの内容を適宜見直し、改善します。変更後のポリシーは、本ページへの掲載をもって効力を生じるものとします。重要な変更が生じた場合は、本サービス上でお知らせします。</p>
+  </div>
+
+  <div class="policy-section">
+    <h2>第10条　お問い合わせ</h2>
+    <p>本ポリシーに関するお問い合わせ、個人情報の開示・訂正・削除のご依頼は下記までご連絡ください。</p>
+    <p><strong>MIRAISE GLOBAL（蛭田 尚宏）</strong><br>
+    メール：<a href="mailto:parcy0704@gmail.com">parcy0704@gmail.com</a></p>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-links">
+    <a href="/">トップ</a>
+    <a href="/privacy.html">プライバシーポリシー</a>
+    <a href="/tokusho.html">特定商取引法に基づく表記</a>
+  </div>
+  &copy; 2025 FPガチャ / MIRAISE GLOBAL. All rights reserved.
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>特定商取引法に基づく表記｜FPガチャ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: #FFF5F0;
+      color: #1A3A5C;
+      min-height: 100vh;
+      line-height: 1.8;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: linear-gradient(160deg, #122840 0%, #1A3A5C 100%);
+      padding: 48px 20px 68px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '📋';
+      position: absolute;
+      font-size: 10rem;
+      opacity: 0.04;
+      top: -10px; right: -20px;
+      pointer-events: none;
+    }
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0; right: 0;
+      height: 44px;
+      background: #FFF5F0;
+      clip-path: ellipse(55% 100% at 50% 100%);
+    }
+    .header-inner { position: relative; z-index: 1; }
+    .header-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: rgba(255,255,255,0.6);
+      font-size: 0.82rem;
+      text-decoration: none;
+      margin-bottom: 20px;
+      transition: color 0.2s;
+    }
+    .header-back:hover { color: rgba(255,255,255,0.9); }
+    .header h1 {
+      font-size: clamp(1.3rem, 4.5vw, 2rem);
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .header-sub { font-size: 0.82rem; color: rgba(255,255,255,0.5); }
+
+    /* ── CONTENT ── */
+    main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 20px 80px;
+    }
+
+    /* ── INTRO ── */
+    .intro-box {
+      background: linear-gradient(135deg, #EAF4FF, #F0F7FF);
+      border: 1px solid #BFDBFE;
+      border-radius: 14px;
+      padding: 22px 24px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      color: #1A3A5C;
+      line-height: 1.8;
+    }
+
+    /* ── MAIN TABLE CARD ── */
+    .tokusho-card {
+      background: #fff;
+      border-radius: 18px;
+      border: 1px solid #FFE8E0;
+      box-shadow: 0 2px 16px rgba(26,58,92,0.05);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .tokusho-card h2 {
+      font-size: 0.95rem;
+      font-weight: 900;
+      color: #fff;
+      background: linear-gradient(135deg, #1A3A5C, #234E7A);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 14px 20px;
+      text-align: left;
+      border-bottom: 1px solid #FFF0EC;
+      vertical-align: top;
+      font-size: 0.9rem;
+    }
+    th {
+      width: 38%;
+      font-weight: 700;
+      color: #1A3A5C;
+      background: #FFFAF8;
+      white-space: nowrap;
+    }
+    td { color: #4A5568; }
+    tr:last-child th, tr:last-child td { border-bottom: none; }
+    td a { color: #1A3A5C; font-weight: 700; }
+    td strong { color: #1A3A5C; }
+
+    @media (max-width: 480px) {
+      th, td { padding: 12px 16px; }
+      th { width: auto; display: block; border-bottom: none; background: #FFFAF8; padding-bottom: 4px; }
+      td { display: block; border-bottom: 1px solid #FFF0EC; }
+    }
+
+    /* ── NOTE ── */
+    .note-box {
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid #FFE8E0;
+      padding: 20px 24px;
+      font-size: 0.85rem;
+      color: #756060;
+      line-height: 1.8;
+      box-shadow: 0 2px 12px rgba(26,58,92,0.04);
+    }
+    .note-box strong { color: #1A3A5C; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0E1F30;
+      color: rgba(255,255,255,0.35);
+      text-align: center;
+      padding: 28px 20px;
+      font-size: 0.8rem;
+      line-height: 2;
+    }
+    footer a { color: rgba(255,255,255,0.5); text-decoration: none; }
+    footer a:hover { color: rgba(255,255,255,0.8); }
+    .footer-links { margin-bottom: 8px; display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 16px; }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a href="/" class="header-back">← FPガチャ トップへ</a>
+    <h1>特定商取引法に基づく表記</h1>
+    <p class="header-sub">Specified Commercial Transactions Act</p>
+  </div>
+</header>
+
+<main>
+  <div class="intro-box">
+    特定商取引法第11条に基づき、以下のとおり表記します。本サービス「FPガチャ」をご利用いただく前に必ずご確認ください。
+  </div>
+
+  <div class="tokusho-card">
+    <h2>事業者情報</h2>
+    <table>
+      <tr>
+        <th>販売事業者</th>
+        <td>MIRAISE GLOBAL</td>
+      </tr>
+      <tr>
+        <th>代表者</th>
+        <td>蛭田 尚宏</td>
+      </tr>
+      <tr>
+        <th>所在地</th>
+        <td>請求があれば遅滞なく開示します</td>
+      </tr>
+      <tr>
+        <th>電話番号</th>
+        <td>請求があれば遅滞なく開示します</td>
+      </tr>
+      <tr>
+        <th>メールアドレス</th>
+        <td><a href="mailto:parcy0704@gmail.com">parcy0704@gmail.com</a></td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="tokusho-card">
+    <h2>サービスについて</h2>
+    <table>
+      <tr>
+        <th>サービス名</th>
+        <td>FPガチャ</td>
+      </tr>
+      <tr>
+        <th>サービス内容</th>
+        <td>AIを活用したファイナンシャルプランナー（FP）マッチングサービス。相談者とFPをマッチングし、オンライン面談（Google Meet）を自動手配します。</td>
+      </tr>
+      <tr>
+        <th>対象</th>
+        <td>FPパートナー（ファイナンシャルプランナー）として本サービスに参加する事業者・個人</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="tokusho-card">
+    <h2>料金・支払い</h2>
+    <table>
+      <tr>
+        <th>料金プラン</th>
+        <td>
+          <strong>スタンダードプラン</strong>：月額 3,000円（税込）<br>
+          <strong>成果報酬プラン</strong>：月額 1,000円（税込）＋ 成約手数料 10%
+        </td>
+      </tr>
+      <tr>
+        <th>支払方法</th>
+        <td>クレジットカード（Visa・Mastercard・American Express・JCB）<br>決済処理：Stripe</td>
+      </tr>
+      <tr>
+        <th>支払時期</th>
+        <td>月額料金：登録月の翌月1日から毎月前払い<br>（初月は無料トライアル期間として請求なし）</td>
+      </tr>
+      <tr>
+        <th>消費税</th>
+        <td>表示価格はすべて税込みです</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="tokusho-card">
+    <h2>サービス提供・解約・返金</h2>
+    <table>
+      <tr>
+        <th>サービス提供時期</th>
+        <td>登録完了後、即時ご利用いただけます</td>
+      </tr>
+      <tr>
+        <th>動作環境</th>
+        <td>スマートフォン（iOS・Android）・PC推奨<br>LINEアプリおよびGoogleカレンダーが必要です</td>
+      </tr>
+      <tr>
+        <th>解約方法</th>
+        <td>月末までにLINEにて「停止」または「退会」とお送りいただくか、<a href="mailto:parcy0704@gmail.com">parcy0704@gmail.com</a> までご連絡ください。翌月より解約となります。</td>
+      </tr>
+      <tr>
+        <th>返金ポリシー</th>
+        <td>
+          原則として返金はいたしません。<br>
+          ただし、初月無料期間中（最初の30日間）にご解約の場合は、費用は一切発生しません。<br>
+          当社の重大な過失によるサービス障害が生じた場合は個別にご相談ください。
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="tokusho-card">
+    <h2>その他</h2>
+    <table>
+      <tr>
+        <th>禁止事項</th>
+        <td>金融商品の販売勧誘・不正なマッチング操作・個人情報の不正利用・その他当社が不適切と判断する行為</td>
+      </tr>
+      <tr>
+        <th>準拠法</th>
+        <td>日本法</td>
+      </tr>
+      <tr>
+        <th>管轄裁判所</th>
+        <td>当社所在地を管轄する裁判所</td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="note-box">
+    <strong>お問い合わせについて</strong><br>
+    所在地・電話番号のご請求およびその他のお問い合わせは、メール（<a href="mailto:parcy0704@gmail.com" style="color:#1A3A5C;font-weight:700;">parcy0704@gmail.com</a>）にてお受けしております。原則として3営業日以内にご回答いたします。
+  </div>
+</main>
+
+<footer>
+  <div class="footer-links">
+    <a href="/">トップ</a>
+    <a href="/privacy.html">プライバシーポリシー</a>
+    <a href="/tokusho.html">特定商取引法に基づく表記</a>
+  </div>
+  &copy; 2025 FPガチャ / MIRAISE GLOBAL. All rights reserved.
+</footer>
+
+</body>
+</html>

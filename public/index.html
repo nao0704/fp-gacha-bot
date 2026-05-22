@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FPガチャ｜お金の悩み、プロに気軽に相談しよう</title>
+  <meta name="description" content="AIがあなたにぴったりのFPをガチャでマッチング！オンライン相談・完全無料・匿名OK。老後・保険・NISA・家計など、お金の悩みをプロに気軽に相談できます。">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
   <style>
@@ -11,156 +12,437 @@
     html { scroll-behavior: smooth; }
     body {
       font-family: 'Noto Sans JP', sans-serif;
-      color: #1a1a2e;
-      background: #fff;
+      color: #333333;
+      background: #FFFFFF;
       overflow-x: hidden;
+      line-height: 1.7;
+      padding-top: 62px;
+    }
+
+    /* ── COMMON ── */
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+    .container--wide { max-width: 900px; }
+    .section {
+      padding: 72px 20px;
+      position: relative;
+    }
+    .section--white { background: #FFFFFF; }
+    .section--grey { background: #F8F8F8; }
+    .section-eyebrow {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #3B82F6;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      text-align: center;
+      font-size: clamp(1.45rem, 5vw, 2rem);
+      font-weight: 900;
+      color: #333333;
+      line-height: 1.35;
+      margin-bottom: 48px;
+    }
+    .section-title em {
+      font-style: normal;
+      background: linear-gradient(135deg, #3B82F6, #F97316);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── DIAGONAL SECTION BORDERS ── */
+    .diag-right::after,
+    .diag-left::after {
+      content: '';
+      position: absolute;
+      bottom: -40px;
+      left: 0;
+      width: 100%;
+      height: 40px;
+      background: inherit;
+      z-index: 1;
+    }
+    .diag-right::after { clip-path: polygon(0 0, 100% 0, 100% 100%); }
+    .diag-left::after  { clip-path: polygon(0 0, 100% 0, 0 100%); }
+
+    /* ── FADE-IN ANIMATION ── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.65s ease, transform 0.65s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* LINE Button */
+    .line-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #06C755;
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 900;
+      font-family: 'Noto Sans JP', sans-serif;
+      padding: 18px 40px;
+      border-radius: 999px;
+      text-decoration: none;
+      box-shadow: 0 8px 28px rgba(6,199,85,0.38);
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: none;
+      cursor: pointer;
+    }
+    .line-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(6,199,85,0.45); }
+    .line-btn--full { width: 100%; max-width: 360px; }
+
+    /* ── SITE HEADER (fixed) ── */
+    .site-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      z-index: 1000;
+      background: #FFFFFF;
+      padding: 10px 20px;
+      border-bottom: 1px solid #E5E7EB;
+      display: flex;
+      align-items: center;
+      transition: background 0.3s, backdrop-filter 0.3s;
+    }
+    .site-header.scrolled {
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .site-header img {
+      height: 40px;
+      width: auto;
+      display: block;
     }
 
     /* ── HERO ── */
-    .hero {
-      background: linear-gradient(135deg, #667eea 0%, #f093fb 50%, #f5576c 100%);
-      padding: 60px 24px 80px;
-      text-align: center;
-      position: relative;
+    .hero-img-full {
+      width: 100%;
+      line-height: 0;
       overflow: hidden;
     }
-    .hero::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='30' cy='30' r='20'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    .hero-img-full img {
+      width: 100%;
+      display: block;
+      object-fit: cover;
+      max-height: 520px;
+    }
+    .hero-text {
+      background: #FFFFFF;
+      padding: 48px 20px 88px;
+      text-align: center;
+      position: relative;
     }
     .hero-badge {
-      display: inline-block;
-      background: rgba(255,255,255,0.25);
-      color: #fff;
-      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(59,130,246,0.08);
+      color: #3B82F6;
+      font-size: 0.78rem;
       font-weight: 700;
-      padding: 6px 16px;
+      padding: 7px 18px;
       border-radius: 999px;
-      margin-bottom: 20px;
-      letter-spacing: 0.05em;
+      border: 1px solid rgba(59,130,246,0.25);
+      letter-spacing: 0.08em;
+      margin-bottom: 24px;
     }
-    .hero h1 {
-      font-size: clamp(2rem, 7vw, 3.2rem);
+    .hero-text h1 {
+      font-size: clamp(1.9rem, 7vw, 3rem);
       font-weight: 900;
-      color: #fff;
-      line-height: 1.2;
-      margin-bottom: 16px;
-      position: relative;
+      color: #333333;
+      line-height: 1.25;
+      margin-bottom: 18px;
+      letter-spacing: -0.01em;
     }
-    .hero-emoji { font-size: clamp(2.5rem, 8vw, 4rem); display: block; margin-bottom: 12px; }
+    .hero-text h1 span {
+      background: linear-gradient(135deg, #F97316, #3B82F6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
     .hero-sub {
-      font-size: clamp(0.95rem, 3vw, 1.15rem);
-      color: rgba(255,255,255,0.92);
-      line-height: 1.7;
+      font-size: clamp(0.92rem, 3.5vw, 1.05rem);
+      color: #666666;
       max-width: 480px;
       margin: 0 auto 32px;
-      position: relative;
+      line-height: 1.8;
     }
-    .hero-cta {
-      display: inline-block;
-      background: #fff;
-      color: #667eea;
-      font-size: 1.1rem;
-      font-weight: 900;
-      padding: 16px 40px;
+    .hero-badges {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 32px;
+    }
+    .hero-pill {
+      background: #F8F8F8;
+      color: #333333;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 7px 16px;
       border-radius: 999px;
-      text-decoration: none;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid #E5E7EB;
+    }
+    .hero-note {
+      margin-top: 16px;
+      font-size: 0.8rem;
+      color: #999999;
+    }
+
+    /* ── WORRIES ── */
+    .worries-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    .worry-item {
+      background: #FFFFFF;
+      border-radius: 16px;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.97rem;
+      font-weight: 700;
+      color: #333333;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+      border: 1px solid #E5E7EB;
+    }
+    .worry-emoji { font-size: 1.6rem; flex-shrink: 0; }
+    .worry-arrow {
+      margin-left: auto;
+      color: #3B82F6;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    /* ── AI ASSISTANT ── */
+    .ai-section { max-width: 640px; margin: 0 auto; }
+    .ai-section-block {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      margin-bottom: 64px;
+    }
+    .ai-section-block:last-child { margin-bottom: 0; }
+    .ai-section-block--reverse { flex-direction: row-reverse; }
+    .ai-section-img {
+      width: 160px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 4px solid #E5E7EB;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    }
+    .ai-section-img img { width: 100%; display: block; }
+    .fp-section-img {
+      width: 220px;
+      flex-shrink: 0;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    }
+    .fp-section-img img { width: 100%; display: block; }
+    .ai-section-text .eyebrow {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #3B82F6;
+      margin-bottom: 8px;
+    }
+    .ai-section-text h3 {
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: #333333;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+    .ai-section-text p {
+      font-size: 0.9rem;
+      color: #666666;
+      line-height: 1.8;
+    }
+    @media (max-width: 540px) {
+      .ai-section-block,
+      .ai-section-block--reverse { flex-direction: column; text-align: center; }
+      .ai-section-img, .fp-section-img { margin: 0 auto; }
+      .ai-section-text .eyebrow { text-align: center; }
+    }
+
+    /* ── WHAT IS ── */
+    .what-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+    .what-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      padding: 28px 0;
+      border-bottom: 1px dashed #E5E7EB;
       position: relative;
     }
-    .hero-cta:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.2); }
-    .hero-free {
-      display: inline-block;
-      margin-top: 14px;
-      color: rgba(255,255,255,0.9);
-      font-size: 0.9rem;
+    .what-step:last-child { border-bottom: none; padding-bottom: 0; }
+    .what-step-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #EBF4FF, #DBEAFE);
+      border: 2px solid #BFDBFE;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      flex-shrink: 0;
+    }
+    .what-step-num {
+      position: absolute;
+      top: 28px;
+      left: 46px;
+      width: 22px;
+      height: 22px;
+      background: #3B82F6;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 900;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .what-step-text h3 {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #333333;
+      margin-bottom: 6px;
+    }
+    .what-step-text p {
+      font-size: 0.88rem;
+      color: #666666;
+      line-height: 1.7;
+    }
+
+    /* ── BENEFITS ── */
+    .benefits-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    @media (max-width: 400px) { .benefits-grid { grid-template-columns: 1fr; } }
+    .benefit-card {
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 18px;
+      padding: 24px 20px;
+      text-align: center;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .benefit-card:hover {
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+      transform: translateY(-2px);
+    }
+    .benefit-card .icon { font-size: 2.2rem; margin-bottom: 10px; }
+    .benefit-card h3 {
+      font-size: 0.95rem;
+      font-weight: 900;
+      color: #333333;
+      margin-bottom: 6px;
+    }
+    .benefit-card p {
+      font-size: 0.82rem;
+      color: #666666;
+      line-height: 1.65;
+    }
+    .benefit-card--featured {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #EBF4FF, #DBEAFE);
+      border-color: #BFDBFE;
+    }
+    .benefit-card--featured h3 { color: #1D4ED8; }
+
+    /* ── VOICES ── */
+    .voices-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    @media (max-width: 560px) { .voices-grid { grid-template-columns: 1fr; } }
+    .voice-card {
+      background: #FFFFFF;
+      border-radius: 18px;
+      padding: 24px 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      border: 1px solid #E5E7EB;
+      display: flex;
+      flex-direction: column;
+    }
+    .voice-stars {
+      font-size: 1rem;
+      margin-bottom: 12px;
+      color: #F59E0B;
+      letter-spacing: 0.05em;
+    }
+    .voice-quote {
+      font-size: 0.88rem;
+      color: #333333;
+      line-height: 1.8;
+      margin-bottom: 14px;
+      flex: 1;
+    }
+    .voice-meta {
+      font-size: 0.78rem;
+      color: #999999;
       font-weight: 700;
     }
 
-    /* ── SECTIONS ── */
-    section { padding: 64px 24px; }
-    .section-title {
-      text-align: center;
-      font-size: clamp(1.4rem, 5vw, 2rem);
-      font-weight: 900;
-      margin-bottom: 48px;
-      line-height: 1.3;
-    }
-    .section-title span { color: #667eea; }
-
-    /* ── WHAT IS ── */
-    .what-is { background: #f8f5ff; }
-    .what-box {
-      max-width: 640px;
-      margin: 0 auto;
-      background: #fff;
-      border-radius: 24px;
-      padding: 32px 28px;
-      box-shadow: 0 4px 24px rgba(102,126,234,0.1);
-      text-align: center;
-    }
-    .what-box .big-emoji { font-size: 4rem; margin-bottom: 16px; }
-    .what-box p {
-      font-size: 1rem;
-      line-height: 1.9;
-      color: #444;
-    }
-    .what-box strong { color: #667eea; }
-
-    /* ── BENEFITS ── */
-    .benefits { background: #fff; }
-    .benefits-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-    .benefit-card {
-      background: linear-gradient(135deg, #f8f5ff, #fff5f8);
-      border-radius: 20px;
-      padding: 28px 24px;
-      border: 2px solid rgba(102,126,234,0.1);
-    }
-    .benefit-card .icon { font-size: 2.4rem; margin-bottom: 12px; }
-    .benefit-card h3 {
-      font-size: 1.05rem;
-      font-weight: 900;
-      margin-bottom: 8px;
-      color: #1a1a2e;
-    }
-    .benefit-card p { font-size: 0.92rem; line-height: 1.8; color: #555; }
-
-    /* ── HOW IT WORKS ── */
-    .how { background: linear-gradient(135deg, #667eea 0%, #f093fb 100%); }
-    .how .section-title { color: #fff; }
-    .how .section-title span { color: #fff; text-decoration: underline; }
-    .steps {
-      max-width: 560px;
-      margin: 0 auto;
+    /* ── HOW TO ── */
+    .steps-list {
       display: flex;
       flex-direction: column;
       gap: 16px;
+      max-width: 540px;
+      margin: 0 auto;
     }
-    .step {
-      background: rgba(255,255,255,0.18);
-      backdrop-filter: blur(8px);
-      border-radius: 16px;
-      padding: 20px 24px;
+    .step-card {
+      background: #FFFFFF;
+      border-radius: 18px;
+      padding: 22px 24px;
       display: flex;
       align-items: flex-start;
-      gap: 16px;
-      color: #fff;
+      gap: 18px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      border: 1px solid #E5E7EB;
     }
-    .step-num {
-      width: 40px;
-      height: 40px;
+    .step-num-circle {
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
-      background: #fff;
-      color: #667eea;
+      background: linear-gradient(135deg, #3B82F6, #F97316);
+      color: #fff;
       font-weight: 900;
       font-size: 1.1rem;
       display: flex;
@@ -168,303 +450,573 @@
       justify-content: center;
       flex-shrink: 0;
     }
-    .step-text h4 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
-    .step-text p { font-size: 0.88rem; opacity: 0.9; line-height: 1.6; }
+    .step-card-body h3 {
+      font-size: 1rem;
+      font-weight: 900;
+      color: #333333;
+      margin-bottom: 5px;
+    }
+    .step-card-body p {
+      font-size: 0.85rem;
+      color: #666666;
+      line-height: 1.65;
+    }
+    .step-icon { font-size: 1.5rem; margin-left: auto; align-self: center; flex-shrink: 0; }
 
-    /* ── WORRIES ── */
-    .worries { background: #fff8f0; }
-    .worries-list {
-      max-width: 640px;
-      margin: 0 auto;
+    /* ── SAFETY ── */
+    .safety-grid {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 14px;
+      max-width: 560px;
+      margin: 0 auto;
     }
-    .worry-item {
-      background: #fff;
+    .safety-card {
+      background: #FFFFFF;
+      border-radius: 16px;
+      padding: 22px 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.05);
+      border: 1px solid #E5E7EB;
+    }
+    .safety-icon {
+      width: 52px;
+      height: 52px;
       border-radius: 14px;
-      padding: 16px 20px;
+      background: linear-gradient(135deg, #EBF4FF, #DBEAFE);
       display: flex;
       align-items: center;
-      gap: 14px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      justify-content: center;
+      font-size: 1.6rem;
+      flex-shrink: 0;
     }
-    .worry-item .worry-emoji { font-size: 1.6rem; flex-shrink: 0; }
-
-    /* ── SAFE ── */
-    .safe { background: #f0fff4; }
-    .safe-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      max-width: 800px;
-      margin: 0 auto;
+    .safety-card h3 {
+      font-size: 0.97rem;
+      font-weight: 900;
+      color: #333333;
+      margin-bottom: 5px;
     }
-    .safe-card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 24px 20px;
-      text-align: center;
-      border: 2px solid #c6f6d5;
+    .safety-card p {
+      font-size: 0.85rem;
+      color: #666666;
+      line-height: 1.65;
     }
-    .safe-card .icon { font-size: 2rem; margin-bottom: 10px; }
-    .safe-card h3 { font-size: 0.95rem; font-weight: 900; margin-bottom: 6px; color: #276749; }
-    .safe-card p { font-size: 0.85rem; color: #555; line-height: 1.7; }
 
     /* ── FAQ ── */
-    .faq { background: #f8f5ff; }
     .faq-list {
-      max-width: 640px;
+      max-width: 600px;
       margin: 0 auto;
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 10px;
     }
     .faq-item {
-      background: #fff;
+      background: #FFFFFF;
       border-radius: 14px;
       overflow: hidden;
-      box-shadow: 0 2px 12px rgba(102,126,234,0.08);
+      border: 1px solid #E5E7EB;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
     }
     .faq-q {
-      padding: 18px 20px;
+      padding: 20px 22px;
       font-weight: 700;
       font-size: 0.95rem;
-      color: #667eea;
+      color: #333333;
       cursor: pointer;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 12px;
+      list-style: none;
+      user-select: none;
     }
-    .faq-q::after { content: '▼'; font-size: 0.8rem; }
-    .faq-a {
-      padding: 0 20px 16px;
-      font-size: 0.9rem;
-      line-height: 1.8;
-      color: #555;
-    }
-
-    /* ── CTA ── */
-    .cta-section {
-      background: linear-gradient(135deg, #1a1a2e, #667eea);
-      padding: 72px 24px;
-      text-align: center;
-    }
-    .cta-section h2 {
-      font-size: clamp(1.5rem, 5vw, 2.2rem);
-      font-weight: 900;
-      color: #fff;
-      margin-bottom: 12px;
-    }
-    .cta-section p { color: rgba(255,255,255,0.8); margin-bottom: 32px; font-size: 1rem; }
-    .cta-line-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      background: #06C755;
-      color: #fff;
-      font-size: 1.1rem;
-      font-weight: 900;
-      padding: 18px 48px;
-      border-radius: 999px;
-      text-decoration: none;
-      box-shadow: 0 8px 32px rgba(6,199,85,0.35);
+    .faq-q::after {
+      content: '+';
+      font-size: 1.3rem;
+      font-weight: 400;
+      color: #3B82F6;
+      flex-shrink: 0;
       transition: transform 0.2s;
     }
-    .cta-line-btn:hover { transform: translateY(-3px); }
-    .cta-note { color: rgba(255,255,255,0.6); font-size: 0.85rem; margin-top: 16px; }
+    .faq-item.open .faq-q::after { content: '−'; }
+    .faq-a {
+      padding: 0 22px;
+      font-size: 0.9rem;
+      line-height: 1.8;
+      color: #666666;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s;
+    }
+    .faq-item.open .faq-a {
+      max-height: 300px;
+      padding: 0 22px 20px;
+    }
+    .faq-q-text::before {
+      content: 'Q.';
+      color: #3B82F6;
+      font-weight: 900;
+      margin-right: 8px;
+    }
+
+    /* ── FOOTER CTA ── */
+    .cta-section {
+      background: linear-gradient(160deg, #1D4ED8 0%, #3B82F6 100%);
+      padding: 80px 20px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-section h2 {
+      font-size: clamp(1.6rem, 5vw, 2.3rem);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.3;
+      margin-bottom: 16px;
+    }
+    .cta-section p {
+      color: rgba(255,255,255,0.85);
+      font-size: 1rem;
+      margin-bottom: 36px;
+      line-height: 1.75;
+    }
+    .cta-note {
+      margin-top: 16px;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.6);
+    }
 
     /* ── FOOTER ── */
     footer {
-      background: #1a1a2e;
-      color: rgba(255,255,255,0.5);
+      background: #1A1A1A;
+      color: rgba(255,255,255,0.35);
       text-align: center;
-      padding: 24px;
-      font-size: 0.82rem;
+      padding: 28px 20px;
+      font-size: 0.8rem;
+      line-height: 2;
+    }
+    .footer-links {
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 4px 16px;
+    }
+    .footer-links a {
+      color: rgba(255,255,255,0.5);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .footer-links a:hover { color: rgba(255,255,255,0.85); }
+
+    /* ── FLOATING CTA (mobile) ── */
+    .floating-cta {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: flex;
+    }
+    .floating-cta .line-btn {
+      font-size: 0.92rem;
+      padding: 15px 32px;
+      box-shadow: 0 8px 32px rgba(6,199,85,0.5);
+      white-space: nowrap;
+    }
+    @media (min-width: 768px) { .floating-cta { display: none; } }
+
+    /* ── RESPONSIVE ── */
+    @media (min-width: 640px) {
+      .benefits-grid { grid-template-columns: repeat(3, 1fr); }
+      .benefit-card--featured { grid-column: auto; }
+      .benefit-card--featured:first-child { grid-column: 1 / -1; }
     }
   </style>
 </head>
 <body>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-badge">🎲 完全無料・オンライン</div>
-  <span class="hero-emoji">💰</span>
-  <h1>お金の悩み、<br>プロに気軽に<br>相談しよう</h1>
-  <p class="hero-sub">家計・保険・老後・投資・節税…<br>どんな悩みでも、金融のプロ（FP）が<br>あなたに合った時間をすぐ予約。<br>費用は一切かかりません。</p>
-  <a href="https://lin.ee/7OS8Lib" class="hero-cta">🎲 LINEで無料相談を始める</a>
-  <div class="hero-free">✅ 完全無料　✅ オンライン　✅ 匿名OK</div>
-</section>
+<!-- ── SITE HEADER (fixed) ── -->
+<header class="site-header" id="site-header">
+  <img src="/images/logo-horizontal.png" alt="FPガチャ">
+</header>
 
-<!-- WORRIES -->
-<section class="worries">
-  <h2 class="section-title">こんなお悩み、<br><span>ありませんか？</span></h2>
+<!-- ── 1. HERO IMAGE (full width) ── -->
+<div class="hero-img-full">
+  <img src="/images/hero.jpg" alt="FPガチャ メインビジュアル" loading="eager">
+</div>
+
+<!-- ── 1b. HERO TEXT (white bg, diagonal right) ── -->
+<div class="hero-text diag-right">
+  <div class="hero-badge">FPガチャ — AI マッチング</div>
+  <h1>お金の悩み、<br><span>プロに気軽に</span><br>相談しよう</h1>
+  <p class="hero-sub">AIアシスタントがあなたにぴったりのFPを<br>ガチャでマッチング！</p>
+  <div class="hero-badges">
+    <span class="hero-pill">✅ 相談無料</span>
+    <span class="hero-pill">✅ オンラインで完結</span>
+    <span class="hero-pill">✅ 匿名OK</span>
+  </div>
+  <a href="https://lin.ee/7OS8Lib" class="line-btn line-btn--full">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.105.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+    LINEで無料相談を始める
+  </a>
+  <p class="hero-note">登録不要・今すぐ始められます</p>
+</div>
+
+<!-- ── 2. WORRIES ── -->
+<section class="section section--grey diag-left fade-in">
+  <p class="section-eyebrow">COMMON WORRIES</p>
+  <h2 class="section-title">こんなお悩み、<br><em>ありませんか？</em></h2>
   <div class="worries-list">
-    <div class="worry-item"><span class="worry-emoji">😟</span>老後の資金がぜんぜん貯まってない…</div>
-    <div class="worry-item"><span class="worry-emoji">🤔</span>保険、本当に今のままでいいの？</div>
-    <div class="worry-item"><span class="worry-emoji">😰</span>子どもの教育費、どう準備すればいい？</div>
-    <div class="worry-item"><span class="worry-emoji">📊</span>NISAってやったほうがいい？何から始めれば？</div>
-    <div class="worry-item"><span class="worry-emoji">💸</span>毎月お金が足りない。家計を見直したい。</div>
-    <div class="worry-item"><span class="worry-emoji">🏠</span>住宅ローン、このままで大丈夫？</div>
-    <div class="worry-item"><span class="worry-emoji">😣</span>相談したいけど、誰に頼んだらいいかわからない。</div>
-  </div>
-</section>
-
-<!-- WHAT IS -->
-<section class="what-is">
-  <h2 class="section-title"><span>FPガチャ</span>って何？</h2>
-  <div class="what-box">
-    <div class="big-emoji">🎲</div>
-    <p>
-      <strong>FPガチャ</strong>は、金融の国家資格を持つプロの<strong>ファイナンシャルプランナー（FP）</strong>と、LINEで簡単に相談予約ができるサービスです。<br><br>
-      「ガチャ」という名前の通り、あなたの悩みと状況に合ったFPを<strong>AIがマッチングして自動で割り当て</strong>ます。面倒な比較・選択は一切不要。<br><br>
-      相談はすべて<strong>オンライン</strong>なので、どこからでも気軽に受けられます。
-    </p>
-  </div>
-</section>
-
-<!-- BENEFITS -->
-<section class="benefits">
-  <h2 class="section-title">FPガチャを使う<br><span>5つのメリット</span></h2>
-  <div class="benefits-grid">
-    <div class="benefit-card">
-      <div class="icon">🆓</div>
-      <h3>完全無料で相談できる</h3>
-      <p>相談料は一切かかりません。FPへの成果報酬もゼロ。純粋にあなたの悩みを解決するための時間です。</p>
+    <div class="worry-item">
+      <span class="worry-emoji">😟</span>
+      <span>老後の資金が全然貯まってない…</span>
+      <span class="worry-arrow">›</span>
     </div>
-    <div class="benefit-card">
-      <div class="icon">🎓</div>
-      <h3>全員が資格保有のプロFP</h3>
-      <p>登録しているFPは全員、FPを本業とする国家資格保有者。素人のアドバイスとは次元が違います。</p>
+    <div class="worry-item">
+      <span class="worry-emoji">🤔</span>
+      <span>NISAってやったほうがいい？</span>
+      <span class="worry-arrow">›</span>
     </div>
-    <div class="benefit-card">
-      <div class="icon">💬</div>
-      <h3>第三者だから話しやすい</h3>
-      <p>家族や友人には話しにくいお金の悩みも、利害関係のないプロだからこそ正直に話せます。</p>
+    <div class="worry-item">
+      <span class="worry-emoji">💸</span>
+      <span>保険料高すぎる気がする…</span>
+      <span class="worry-arrow">›</span>
     </div>
-    <div class="benefit-card">
-      <div class="icon">📱</div>
-      <h3>LINEで完結・オンライン</h3>
-      <p>使い慣れたLINEで予約から参加まで完結。自宅でも移動中でも、好きな場所から相談できます。</p>
+    <div class="worry-item">
+      <span class="worry-emoji">📚</span>
+      <span>子どもの教育費どう準備する？</span>
+      <span class="worry-arrow">›</span>
     </div>
-    <div class="benefit-card">
-      <div class="icon">🔒</div>
-      <h3>個人情報は厳重管理</h3>
-      <p>登録情報は厳格に管理されています。何かを無理に売られることも、しつこい営業も一切ありません。</p>
+    <div class="worry-item">
+      <span class="worry-emoji">🏦</span>
+      <span>iDeCoってよくわからない…</span>
+      <span class="worry-arrow">›</span>
     </div>
-    <div class="benefit-card">
-      <div class="icon">⚡</div>
-      <h3>AIが最適なFPを即マッチング</h3>
-      <p>あなたの悩みをAIが瞬時に分析。ライフステージや専門領域を考慮して、最適なFPをすぐ見つけます。</p>
+    <div class="worry-item">
+      <span class="worry-emoji">📊</span>
+      <span>家計の見直しをしたい</span>
+      <span class="worry-arrow">›</span>
     </div>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="how">
-  <h2 class="section-title">使い方は<span>たったの4ステップ</span></h2>
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-text">
-        <h4>LINEで悩みを送る</h4>
-        <p>「老後が心配」「保険を見直したい」など、思ったままを送るだけ。難しい入力は不要です。</p>
+<!-- ── 2.5 AI ASSISTANT & FP PHOTO ── -->
+<section class="section section--white diag-right fade-in">
+  <div class="ai-section">
+    <div class="ai-section-block">
+      <div class="ai-section-img">
+        <img src="/images/arisa.jpg" alt="AIアシスタント 蔵戸ありさ" loading="lazy">
+      </div>
+      <div class="ai-section-text">
+        <p class="eyebrow">AI ASSISTANT</p>
+        <h3>AIアシスタント<br>蔵戸ありさ</h3>
+        <p>あなたのお金の悩みをじっくり聞いて、最適なFPをマッチングするAIアシスタントです。LINEのトーク画面で実際にやり取りができます。まずは気軽に話しかけてみてください。</p>
       </div>
     </div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-text">
-        <h4>AIがマッチング</h4>
-        <p>ライフステージ・年代・悩みの内容からAIが最適なFPを自動で選びます。</p>
+    <div class="ai-section-block ai-section-block--reverse">
+      <div class="fp-section-img">
+        <img src="/images/fp-consult.jpg" alt="プロのFPが丁寧にサポート" loading="lazy">
       </div>
-    </div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-text">
-        <h4>日時を選んで予約完了</h4>
-        <p>表示された空き時間から希望の日時を選ぶだけ。その場で予約が確定します。</p>
-      </div>
-    </div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div class="step-text">
-        <h4>当日オンラインで相談</h4>
-        <p>FPからオンライン会議のURLが届きます。スマホからでも参加できます。カメラ顔出しは任意です。</p>
+      <div class="ai-section-text">
+        <p class="eyebrow">FP CONSULTATION</p>
+        <h3>プロのFPが<br>丁寧にサポート</h3>
+        <p>マッチング後はオンラインでFPと1対1で相談できます。</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- SAFE -->
-<section class="safe">
-  <h2 class="section-title">安心・安全の<br><span>ポイント</span></h2>
-  <div class="safe-grid">
-    <div class="safe-card">
-      <div class="icon">🛡️</div>
-      <h3>売り込みは一切なし</h3>
-      <p>FPが金融商品を売って手数料を得る仕組みはありません。純粋なアドバイスのみです。</p>
-    </div>
-    <div class="safe-card">
-      <div class="icon">🔐</div>
-      <h3>個人情報の厳重管理</h3>
-      <p>ご相談内容・個人情報は厳格に管理。第三者に提供されることはありません。</p>
-    </div>
-    <div class="safe-card">
-      <div class="icon">💴</div>
-      <h3>完全無料・隠れた費用なし</h3>
-      <p>相談料・登録料・手数料、すべてゼロ。サービス内で費用が発生することはありません。</p>
-    </div>
-    <div class="safe-card">
-      <div class="icon">🏅</div>
-      <h3>全員が本業FP</h3>
-      <p>登録FPは全員、FPを本業とするプロフェッショナルです。副業や素人は登録できません。</p>
+<!-- ── 3. WHAT IS FPガチャ? ── -->
+<section class="section section--grey diag-left fade-in">
+  <p class="section-eyebrow">WHAT IS FPガチャ?</p>
+  <h2 class="section-title"><em>FPガチャ</em>って何？</h2>
+  <div class="container">
+    <div class="what-steps">
+      <div class="what-step">
+        <div style="position:relative; flex-shrink:0;">
+          <div class="what-step-icon">💬</div>
+          <div class="what-step-num">1</div>
+        </div>
+        <div class="what-step-text">
+          <h3>悩みをLINEで送る</h3>
+          <p>「老後が心配」「保険を見直したい」など、思ったままを送るだけ。AIアシスタントが丁寧にヒアリングします。</p>
+        </div>
+      </div>
+      <div class="what-step">
+        <div style="position:relative; flex-shrink:0;">
+          <div class="what-step-icon">✨</div>
+          <div class="what-step-num">2</div>
+        </div>
+        <div class="what-step-text">
+          <h3>AIがFPをマッチング</h3>
+          <p>あなたの悩みと属性をAIが瞬時に分析。ガチャ方式で最適なプロFPをマッチングします。</p>
+        </div>
+      </div>
+      <div class="what-step">
+        <div style="position:relative; flex-shrink:0;">
+          <div class="what-step-icon">📱</div>
+          <div class="what-step-num">3</div>
+        </div>
+        <div class="what-step-text">
+          <h3>FPとオンライン面談</h3>
+          <p>Google Meetで資格保有のプロFPと直接相談。自宅から、スマホ一つで完結します。</p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- FAQ -->
-<section class="faq">
-  <h2 class="section-title">よくある<br><span>質問</span></h2>
+<!-- ── 4. BENEFITS ── -->
+<section class="section section--white diag-right fade-in">
+  <p class="section-eyebrow">8 BENEFITS</p>
+  <h2 class="section-title">FPガチャを使う<br><em>8つのメリット</em></h2>
+  <div class="container container--wide">
+    <div class="benefits-grid">
+      <div class="benefit-card benefit-card--featured">
+        <div class="icon">🆓</div>
+        <h3>完全無料で相談できる</h3>
+        <p>相談料・登録料・手数料、すべてゼロ。隠れた費用は一切ありません。</p>
+      </div>
+      <div class="benefit-card">
+        <div class="icon">🎓</div>
+        <h3>資格保有の<br>プロFPのみ</h3>
+        <p>全員が国家資格または各種金融認定資格を保有するファイナンシャルプランナー。</p>
+      </div>
+      <div class="benefit-card">
+        <div class="icon">🤝</div>
+        <h3>売り込みなし<br>中立なアドバイス</h3>
+        <p>金融商品の販売手数料は一切なし。純粋な中立アドバイスのみ。</p>
+      </div>
+      <div class="benefit-card">
+        <div class="icon">📱</div>
+        <h3>オンラインで<br>完結する</h3>
+        <p>LINEで予約から面談まで完結。どこからでも参加できます。</p>
+      </div>
+      <div class="benefit-card">
+        <div class="icon">🔄</div>
+        <h3>何度でも<br>相談OK</h3>
+        <p>悩みが変わっても何度でも相談できます。回数制限なし。</p>
+      </div>
+      <div class="benefit-card">
+        <div class="icon">🏢</div>
+        <h3>窓口に行かなく<br>ていい！</h3>
+        <p>ほけんの窓口など店舗に出向く必要ゼロ。スマホ1つで完結します。</p>
+      </div>
+      <div class="benefit-card">
+        <div class="icon">⚡</div>
+        <h3>最速1分で<br>FPにマッチング</h3>
+        <p>AIが自動でぴったりのFPを選出。待ち時間ほぼゼロ。</p>
+      </div>
+      <div class="benefit-card benefit-card--featured">
+        <div class="icon">💰</div>
+        <h3>通常1時間5,000〜10,000円のFP相談が完全無料</h3>
+        <p>何度相談しても一切費用はかかりません。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 4.5 CUSTOMER VOICES ── -->
+<section class="section section--grey diag-left fade-in">
+  <p class="section-eyebrow">CUSTOMER VOICES</p>
+  <h2 class="section-title">お客様の<em>声</em></h2>
+  <div class="voices-grid">
+    <div class="voice-card">
+      <div class="voice-stars">★★★★★</div>
+      <p class="voice-quote">「キャッシュフロー表を作ってもらい、将来のお金の流れが一目でわかりました。こんなに丁寧に教えてもらえるとは思っていませんでした。」</p>
+      <p class="voice-meta">東京都 30代 会社員</p>
+    </div>
+    <div class="voice-card">
+      <div class="voice-stars">★★★★★</div>
+      <p class="voice-quote">「相続のことが不安でしたが、具体的にどう動けばいいか整理できました。一人で悩まなくてよかったです。」</p>
+      <p class="voice-meta">大阪府 50代 主婦</p>
+    </div>
+    <div class="voice-card">
+      <div class="voice-stars">★★★★★</div>
+      <p class="voice-quote">「iDeCoの説明がとてもわかりやすく、NISAから乗り換えを決断できました。自分に合った選択ができた気がします。」</p>
+      <p class="voice-meta">神奈川県 40代 会社員</p>
+    </div>
+    <div class="voice-card">
+      <div class="voice-stars">★★★★★</div>
+      <p class="voice-quote">「毎月の貯金ができるようになって、半年で30万円貯まりました！家計の見直しってこんなに効果があるんですね。」</p>
+      <p class="voice-meta">福岡県 20代 会社員</p>
+    </div>
+    <div class="voice-card">
+      <div class="voice-stars">★★★★★</div>
+      <p class="voice-quote">「フリーランスで確定申告の帳簿のつけ方を聞いていいのか迷っていましたが、丁寧に教えてもらえました。こんなことも相談できるんだと驚きました。」</p>
+      <p class="voice-meta">愛知県 30代 フリーランス</p>
+    </div>
+    <div class="voice-card">
+      <div class="voice-stars">★★★★★</div>
+      <p class="voice-quote">「保険の見直しで月々8,000円の節約に成功。もっと早く相談すればよかったです。」</p>
+      <p class="voice-meta">北海道 40代 自営業</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── 5. HOW TO ── -->
+<section class="section section--white diag-right fade-in">
+  <p class="section-eyebrow">HOW TO USE</p>
+  <h2 class="section-title">使い方<em>4ステップ</em></h2>
+  <div class="steps-list">
+    <div class="step-card">
+      <div class="step-num-circle">1</div>
+      <div class="step-card-body">
+        <h3>LINEで友だち追加</h3>
+        <p>下のボタンからFPガチャのLINEを友だち追加。たった1タップで完了。</p>
+      </div>
+      <div class="step-icon">📲</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num-circle">2</div>
+      <div class="step-card-body">
+        <h3>悩みをテキストで送る</h3>
+        <p>AIアシスタントがヒアリングします。思ったままの言葉でOKです。</p>
+      </div>
+      <div class="step-icon">💬</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num-circle">3</div>
+      <div class="step-card-body">
+        <h3>AIがFPをマッチング</h3>
+        <p>悩みの内容・年代・家族構成からAIが最適なFPをマッチングで選出！</p>
+      </div>
+      <div class="step-icon">✨</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num-circle">4</div>
+      <div class="step-card-body">
+        <h3>オンラインで面談</h3>
+        <p>Google MeetのURLが自動発行。スマホから当日参加するだけ。</p>
+      </div>
+      <div class="step-icon">🖥️</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 6. SAFETY ── -->
+<section class="section section--grey diag-left fade-in">
+  <p class="section-eyebrow">SAFE & SECURE</p>
+  <h2 class="section-title">安心・<em>安全ポイント</em></h2>
+  <div class="safety-grid">
+    <div class="safety-card">
+      <div class="safety-icon">🛡️</div>
+      <div>
+        <h3>個人情報は保護されます</h3>
+        <p>ご相談内容・個人情報は厳格に管理。第三者に提供されることはありません。プライバシーポリシーに基づき適切に保護します。</p>
+      </div>
+    </div>
+    <div class="safety-card">
+      <div class="safety-icon">🔐</div>
+      <div>
+        <h3>LINE IDはFPに共有されません</h3>
+        <p>面談前にFPへLINE IDが渡ることはありません。面談はすべてGoogle Meetを通じて行われます。</p>
+      </div>
+    </div>
+    <div class="safety-card">
+      <div class="safety-icon">🤫</div>
+      <div>
+        <h3>相談内容は第三者に渡しません</h3>
+        <p>AIとFPとのやり取りはサービス外に共有されません。売り込みやしつこい営業は一切禁止しています。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 7. FAQ ── -->
+<section class="section section--white diag-right fade-in">
+  <p class="section-eyebrow">FAQ</p>
+  <h2 class="section-title">よくある<em>質問</em></h2>
   <div class="faq-list">
     <div class="faq-item">
-      <div class="faq-q">本当に無料ですか？</div>
-      <div class="faq-a">はい、完全無料です。相談料・登録料・手数料など、一切費用は発生しません。</div>
+      <div class="faq-q"><span class="faq-q-text">本当に無料ですか？</span></div>
+      <div class="faq-a">はい、完全無料です。相談料・登録料・手数料など、一切費用は発生しません。サービス内で費用が生じることはありません。</div>
     </div>
     <div class="faq-item">
-      <div class="faq-q">名前や連絡先を教えないといけませんか？</div>
-      <div class="faq-a">LINEのニックネームやイニシャルでも相談できます。個人情報の開示は強制しません。</div>
+      <div class="faq-q"><span class="faq-q-text">売り込まれませんか？</span></div>
+      <div class="faq-a">ありません。FPからの金融商品の営業・勧誘は禁止しています。FPは成果報酬型の販売を行わないため、中立なアドバイスのみ提供されます。相談後に何かを購入する義務も一切ありません。</div>
     </div>
     <div class="faq-item">
-      <div class="faq-q">しつこい営業はありませんか？</div>
-      <div class="faq-a">ありません。FPからの営業・勧誘は禁止しています。相談後に何かを購入する義務も一切ありません。</div>
+      <div class="faq-q"><span class="faq-q-text">どんなFPが登録していますか？</span></div>
+      <div class="faq-a">CFP・AFP・1〜2級FP技能士などの国家資格を保有する、FPを本業とするプロフェッショナルのみが登録しています。副業や資格未取得者は登録できません。</div>
     </div>
     <div class="faq-item">
-      <div class="faq-q">どんな悩みでも相談できますか？</div>
-      <div class="faq-a">お金に関することなら何でも大丈夫です。保険・貯蓄・投資・家計・老後・教育費・相続・節税など、幅広くお受けします。</div>
+      <div class="faq-q"><span class="faq-q-text">面談はどこで行いますか？</span></div>
+      <div class="faq-a">すべてオンライン（Google Meet）で行います。スマートフォンさえあれば、自宅や外出先からでも参加できます。カメラの顔出しは任意です。</div>
     </div>
     <div class="faq-item">
-      <div class="faq-q">スマホだけで使えますか？</div>
-      <div class="faq-a">はい。LINEが使えるスマホがあれば、他に何も必要ありません。パソコンからも利用できます。</div>
+      <div class="faq-q"><span class="faq-q-text">相談後に断れますか？</span></div>
+      <div class="faq-a">もちろんです。面談後に何かを決める義務はありません。「参考になりました」で終わっても大丈夫。断ることへの心理的プレッシャーは一切ありません。</div>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
-<section class="cta-section">
-  <h2>まずは気軽に<br>相談してみよう 🎲</h2>
-  <p>費用ゼロ・オンライン・FPガチャで<br>あなたのお金の悩みを解決しよう</p>
-  <a href="https://lin.ee/7OS8Lib" class="cta-line-btn">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.105.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+<!-- ── 8. FOOTER CTA ── -->
+<section class="cta-section fade-in">
+  <h2>まずは気軽に<br>相談してみよう</h2>
+  <p>費用ゼロ・匿名OK・オンライン完結<br>あなたのお金の悩みをプロに解決してもらおう</p>
+  <a href="https://lin.ee/7OS8Lib" class="line-btn line-btn--full" style="margin:0 auto;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.105.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
     LINEで無料相談スタート
   </a>
   <p class="cta-note">登録不要・今すぐ始められます</p>
 </section>
 
 <footer>
-  &copy; 2025 FPガチャ. All rights reserved.
+  <div class="footer-links">
+    <a href="/privacy.html">プライバシーポリシー</a>
+    <a href="/tokusho.html">特定商取引法に基づく表記</a>
+  </div>
+  &copy; 2025 FPガチャ / MIRAISE GLOBAL. All rights reserved.
 </footer>
 
+<!-- ── FLOATING LINE BUTTON (mobile) ── -->
+<div class="floating-cta">
+  <a href="https://lin.ee/7OS8Lib" class="line-btn">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.105.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
+    LINEで無料相談
+  </a>
+</div>
+
+<script>
+  // ── FAQ Accordion ──
+  document.querySelectorAll('.faq-q').forEach(q => {
+    q.addEventListener('click', () => {
+      const item = q.parentElement;
+      const isOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+      if (!isOpen) item.classList.add('open');
+    });
+  });
+
+  // ── Hide floating CTA when footer CTA is visible ──
+  const ctaObserver = new IntersectionObserver(entries => {
+    const floatingCta = document.querySelector('.floating-cta');
+    if (floatingCta) floatingCta.style.opacity = entries[0].isIntersecting ? '0' : '1';
+  }, { threshold: 0.1 });
+  const ctaSection = document.querySelector('.cta-section');
+  if (ctaSection) ctaObserver.observe(ctaSection);
+
+  // ── Sticky header: blur on scroll ──
+  const header = document.getElementById('site-header');
+  window.addEventListener('scroll', () => {
+    header.classList.toggle('scrolled', window.scrollY > 50);
+  }, { passive: true });
+
+  // ── Fade-in on scroll (IntersectionObserver) ──
+  const fadeObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        fadeObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08 });
+
+  document.querySelectorAll('.fade-in').forEach(el => fadeObserver.observe(el));
+</script>
 </body>
 </html>

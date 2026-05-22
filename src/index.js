@@ -90,6 +90,23 @@ export default {
       return handleFPEditSubmit(request, env);
     }
 
+    if (url.pathname === '/api/agents' && request.method === 'GET') {
+      return handleGetAgents(request, env);
+    }
+    if (url.pathname === '/api/agents' && request.method === 'POST') {
+      return handleCreateAgent(request, env);
+    }
+    if (url.pathname.startsWith('/api/agents/') && request.method === 'DELETE') {
+      return handleDeleteAgent(url.pathname.replace('/api/agents/', ''), request, env);
+    }
+
+    if (url.pathname === '/liff/ref' && request.method === 'GET') {
+      return env.ASSETS.fetch(new Request(new URL('/liff/ref.html', url)));
+    }
+    if (url.pathname === '/liff/track' && request.method === 'POST') {
+      return handleLiffTrack(request, env);
+    }
+
     // リマインダー設定エンドポイント
     // NOTE: Cloudflare Workers Durable Objects Alarms を使う場合はここをDO呼び出しに変更すること
     // 現在はDBにレコードを保存し、cronで1時間前に送信する設計
@@ -328,6 +345,16 @@ async function onFollow(ev, env) {
 
   // フェーズを1に初期化
   await kv(env).put(`phase:${uid}`, '1');
+
+  // エージェント経由訪問の場合、registered_atを記録
+  await fetch(
+    `${env.SUPABASE_URL}/rest/v1/agent_referrals?line_user_id=eq.${encodeURIComponent(uid)}&registered_at=is.null`,
+    {
+      method: 'PATCH',
+      headers: sbHeaders(env),
+      body: JSON.stringify({ registered_at: new Date().toISOString() }),
+    }
+  );
 }
 
 // ── Message Router ────────────────────────────────────
@@ -500,16 +527,17 @@ async function handleFPWebRegStart(request, env) {
   const name          = (data.get('name') || '').trim();
   const email         = (data.get('email') || '').trim().toLowerCase();
   const phone         = (data.get('phone') || '').trim();
-  const qualification = (data.get('qualification') || '').trim();
-  const specialties   = data.getAll('specialties');
-  const formats       = data.getAll('formats');
-  const age_ranges    = data.getAll('age_ranges');
-  const family_stages = data.getAll('family_stages');
+  const qualifications = data.getAll('qualifications');
+  const specialties    = data.getAll('specialties');
+  const formats        = data.getAll('formats');
+  const age_ranges     = data.getAll('age_ranges');
+  const family_stages  = data.getAll('family_stages');
+  const qualification  = qualifications.join('・');
 
   if (!name)  return Response.redirect(`${env.WORKER_URL}/fp/register?error=name`, 302);
   if (!email || !email.includes('@')) return Response.redirect(`${env.WORKER_URL}/fp/register?error=email`, 302);
   if (!phone || phone.replace(/[^0-9]/g, '').length < 10) return Response.redirect(`${env.WORKER_URL}/fp/register?error=phone`, 302);
-  if (!qualification) return Response.redirect(`${env.WORKER_URL}/fp/register?error=qualification`, 302);
+  if (!qualifications.length) return Response.redirect(`${env.WORKER_URL}/fp/register?error=qualification`, 302);
   if (!specialties.length) return Response.redirect(`${env.WORKER_URL}/fp/register?error=specialty`, 302);
 
   const legacyStages = [...new Set(family_stages.map(k => FAMILY_STAGE_LEGACY[k]).filter(Boolean))];
@@ -546,17 +574,17 @@ async function handleFPWebRegStart(request, env) {
     <title>登録完了｜FPガチャ</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-      body{font-family:'Noto Sans JP',sans-serif;background:#07111f;color:#fff;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
-      .card{background:rgba(26,74,122,0.25);border:1px solid rgba(126,232,200,0.2);border-radius:24px;padding:48px 36px;max-width:480px;width:100%}
+      body{font-family:'Noto Sans JP',sans-serif;background:#F0F7FF;color:#1E3A5F;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+      .card{background:#fff;border:1px solid #D1E0FF;border-radius:24px;padding:48px 36px;max-width:480px;width:100%;box-shadow:0 4px 24px rgba(26,86,219,0.08)}
       .icon{font-size:3.5rem;margin-bottom:20px}
-      h1{font-size:1.6rem;font-weight:900;color:#7ee8c8;margin-bottom:16px}
-      p{font-size:0.95rem;line-height:1.85;color:rgba(255,255,255,0.78);margin-bottom:16px}
-      .step-box{background:rgba(126,232,200,0.08);border:1px solid rgba(126,232,200,0.25);border-radius:16px;padding:20px 24px;margin:20px 0;text-align:left}
-      .step-box p{margin-bottom:10px;font-size:0.9rem}
+      h1{font-size:1.6rem;font-weight:900;color:#1A56DB;margin-bottom:16px}
+      p{font-size:0.95rem;line-height:1.85;color:#4B6A8A;margin-bottom:16px}
+      .step-box{background:#EFF4FF;border:1px solid #BFDBFE;border-radius:16px;padding:20px 24px;margin:20px 0;text-align:left}
+      .step-box p{margin-bottom:10px;font-size:0.9rem;color:#1E3A5F}
       .step-box p:last-child{margin-bottom:0}
-      .step-num{display:inline-block;background:#7ee8c8;color:#07111f;font-weight:900;font-size:0.75rem;padding:2px 8px;border-radius:999px;margin-right:6px}
-      .line-btn{display:inline-flex;align-items:center;gap:10px;background:#06C755;color:#fff;font-weight:900;font-size:1rem;padding:16px 36px;border-radius:999px;text-decoration:none;margin-top:8px}
-      footer{margin-top:48px;font-size:0.8rem;color:rgba(255,255,255,0.25)}
+      .step-num{display:inline-block;background:#1A56DB;color:#fff;font-weight:900;font-size:0.75rem;padding:2px 8px;border-radius:999px;margin-right:6px}
+      .line-btn{display:inline-flex;align-items:center;gap:10px;background:#06C755;color:#fff;font-weight:900;font-size:1rem;padding:16px 36px;border-radius:999px;text-decoration:none;margin-top:8px;box-shadow:0 4px 16px rgba(6,199,85,0.3)}
+      footer{margin-top:48px;font-size:0.8rem;color:#9DB5D8}
     </style></head>
     <body>
       <div class="card">
@@ -568,7 +596,7 @@ async function handleFPWebRegStart(request, env) {
           <p><span class="step-num">STEP 2</span>LINEで「<strong>登録</strong>」と送信</p>
           <p><span class="step-num">STEP 3</span>登録したメールアドレス（<strong>${email}</strong>）を送信</p>
         </div>
-        <a href="https://lin.ee/7OS8Lib" class="line-btn">
+        <a href="https://line.me/R/oaMessage/7OS8Lib/?text=%E7%99%BB%E9%8C%B2" class="line-btn">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.105.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/></svg>
           LINEで連携する
         </a>
@@ -576,6 +604,91 @@ async function handleFPWebRegStart(request, env) {
       <footer>&copy; 2025 FPガチャ</footer>
     </body></html>
   `, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+}
+
+// ══════════════════════════════════════════════════════
+//  Agent API
+// ══════════════════════════════════════════════════════
+function checkAdminPassword(request) {
+  return request.headers.get('X-Admin-Password') === 'fpgacha2025';
+}
+
+async function handleGetAgents(request, env) {
+  if (!checkAdminPassword(request)) return new Response('Unauthorized', { status: 401 });
+
+  const [agentsRes, refsRes] = await Promise.all([
+    fetch(`${env.SUPABASE_URL}/rest/v1/agents?select=*&order=created_at.asc`, { headers: sbHeaders(env) }),
+    fetch(`${env.SUPABASE_URL}/rest/v1/agent_referrals?registered_at=not.is.null&select=agent_code`, { headers: sbHeaders(env) }),
+  ]);
+  const rows = await agentsRes.json();
+  const refs = await refsRes.json();
+
+  const counts = {};
+  if (Array.isArray(refs)) refs.forEach(r => { counts[r.agent_code] = (counts[r.agent_code] || 0) + 1; });
+
+  const agents = Array.isArray(rows) ? rows.map(a => ({
+    id:            a.id,
+    companyName:   a.company_name,
+    contactName:   a.contact_name,
+    agentEmail:    a.email,
+    code:          a.code,
+    registrations: counts[a.code] || 0,
+    createdAt:     a.created_at,
+  })) : [];
+
+  return new Response(JSON.stringify(agents), { headers: { 'Content-Type': 'application/json' } });
+}
+
+async function handleCreateAgent(request, env) {
+  if (!checkAdminPassword(request)) return new Response('Unauthorized', { status: 401 });
+
+  let body;
+  try { body = await request.json(); } catch { return new Response('Bad Request', { status: 400 }); }
+  const { company_name, contact_name, email, code } = body;
+  if (!company_name || !contact_name || !email || !code) return new Response('Missing fields', { status: 400 });
+
+  const res = await fetch(`${env.SUPABASE_URL}/rest/v1/agents`, {
+    method: 'POST',
+    headers: { ...sbHeaders(env), Prefer: 'return=representation' },
+    body: JSON.stringify({ company_name, contact_name, email, code }),
+  });
+
+  if (res.status === 409) return new Response('Conflict', { status: 409 });
+  if (!res.ok) return new Response('Error', { status: 500 });
+
+  const created = (await res.json())[0];
+  return new Response(JSON.stringify({
+    id: created.id, companyName: created.company_name, contactName: created.contact_name,
+    agentEmail: created.email, code: created.code, registrations: 0, createdAt: created.created_at,
+  }), { headers: { 'Content-Type': 'application/json' } });
+}
+
+async function handleDeleteAgent(id, request, env) {
+  if (!checkAdminPassword(request)) return new Response('Unauthorized', { status: 401 });
+  await fetch(`${env.SUPABASE_URL}/rest/v1/agents?id=eq.${id}`, { method: 'DELETE', headers: sbHeaders(env) });
+  return new Response('OK');
+}
+
+// ══════════════════════════════════════════════════════
+//  LIFF エージェント追跡
+// ══════════════════════════════════════════════════════
+async function handleLiffTrack(request, env) {
+  let body;
+  try { body = await request.json(); } catch { return new Response('OK'); }
+  const { ref, lineUserId } = body;
+  if (!ref) return new Response('OK');
+
+  await fetch(`${env.SUPABASE_URL}/rest/v1/agent_referrals`, {
+    method: 'POST',
+    headers: { ...sbHeaders(env), Prefer: 'return=minimal' },
+    body: JSON.stringify({
+      agent_code: ref,
+      line_user_id: lineUserId || null,
+      visited_at: new Date().toISOString(),
+    }),
+  });
+
+  return new Response('OK');
 }
 
 // ══════════════════════════════════════════════════════
