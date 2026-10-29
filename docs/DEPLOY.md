@@ -23,4 +23,4 @@
 - またはGitHub側で問題のコミットを `git revert` し、新しいPRとしてマージ（mainへの再pushで自動的に以前の状態がデプロイされる）
 
 ## 動作確認
-- Cloudflare Git連携を接続（2026-10-29）。このコミットでプレビュービルドが走るか確認中
+- Cloudflare Git連携を接続（2026-10-29）。Preview commandを`wrangler versions upload`に修正済み
