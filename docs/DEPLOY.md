@@ -21,3 +21,6 @@
 ## ロールバック手順
 - Cloudflareダッシュボード → Workers & Pages → `fp-gacha-bot` → Deployments から、問題発生前の過去のデプロイを選択し「Rollback to this deployment」
 - またはGitHub側で問題のコミットを `git revert` し、新しいPRとしてマージ（mainへの再pushで自動的に以前の状態がデプロイされる）
+
+## 動作確認
+- Cloudflare Git連携を接続（2026-10-29）。このコミットでプレビュービルドが走るか確認中
